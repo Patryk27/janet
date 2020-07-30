@@ -1,0 +1,5 @@
+/.idea
+/target
+janet.db
+janet.db-shm
+janet.db-wal

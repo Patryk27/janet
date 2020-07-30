@@ -1,0 +1,13 @@
+[bot]
+name = "janet"
+
+[database]
+path = "sqlite::memory:" # TODO
+
+[http]
+addr = "0.0.0.0:1234"
+
+[gitlab]
+url = "https://"
+personal_access_token = ""
+webhook_secret = ""
