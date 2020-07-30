@@ -1,6 +1,6 @@
 pub use self::{log::*, new_log::*};
 
-use crate::database::{Database, NewLog};
+use crate::database::Database;
 use anyhow::*;
 use std::ops::DerefMut;
 
@@ -26,7 +26,7 @@ impl LogsRepository {
             .bind(&log.payload)
             .execute(conn.deref_mut())
             .await
-            .with_context(|| format!("Couldn't add log: {:#?}", log))?;
+            .with_context(|| format!("Couldn't add log: {:?}", log))?;
 
         Ok(())
     }

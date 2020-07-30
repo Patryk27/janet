@@ -1,4 +1,4 @@
-use crate::gitlab::MergeRequestPtr;
+use crate::interface::MergeRequestPtr;
 use serde::Serialize;
 use tokio::sync::mpsc;
 

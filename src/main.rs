@@ -1,3 +1,6 @@
+#![feature(try_blocks)]
+#![feature(type_ascription)]
+
 use anyhow::{Context, Result};
 use std::sync::Arc;
 
@@ -56,14 +59,14 @@ async fn main() -> Result<()> {
         log::info!("Initializing GitLab client");
 
         Arc::new(
-            gitlab::GitLabClient::new(config.gitlab)
+            gitlab::GitLabClient::init(config.gitlab)
                 .await
                 .context("Couldn't initialize GitLab client")?,
         )
     };
 
     let cpu = {
-        log::info!("Initializing personality");
+        log::info!("Initializing CPU");
 
         Arc::new(cpu::Cpu::init(db, gitlab.clone()))
     };

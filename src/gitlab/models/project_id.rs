@@ -8,4 +8,8 @@ impl ProjectId {
     pub fn new(id: usize) -> Self {
         Self(id)
     }
+
+    pub fn inner(&self) -> usize {
+        self.0
+    }
 }

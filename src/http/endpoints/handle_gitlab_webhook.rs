@@ -1,6 +1,6 @@
 use crate::cpu::Cpu;
-use crate::gitlab::{MergeRequestPtr, ProjectPtr, WebhookEvent};
-use crate::interface::Command;
+use crate::gitlab::WebhookEvent;
+use crate::interface::{Command, MergeRequestPtr, ProjectPtr};
 use bytes::Bytes;
 use reqwest::StatusCode;
 use std::sync::Arc;
@@ -18,13 +18,19 @@ pub fn handle_gitlab_webhook(
 }
 
 fn handle(cpu: Arc<Cpu>, body: Bytes) -> impl Reply {
-    if let Ok(event) = serde_json::from_slice(&body) {
-        handle_event(cpu, event);
-    } else {
-        if let Ok(event) = String::from_utf8(body.to_vec()) {
-            log::warn!("Unknown event: {}", event);
-        } else {
-            log::error!("Unknown event: (body is not a valid UTF-8)");
+    match serde_json::from_slice(&body) {
+        Ok(event) => {
+            handle_event(cpu, event);
+        }
+
+        Err(error) => {
+            if let Ok(event) = String::from_utf8(body.to_vec()) {
+                log::warn!("Unknown event: {}", event);
+            } else {
+                log::error!("Unknown event: (body is not a valid UTF-8)");
+            }
+
+            log::warn!("... serde said: {}", error);
         }
     }
 
@@ -32,7 +38,7 @@ fn handle(cpu: Arc<Cpu>, body: Bytes) -> impl Reply {
 }
 
 fn handle_event(cpu: Arc<Cpu>, event: WebhookEvent) {
-    log::info!("Handling event: {:#?}", event);
+    log::info!("Handling event: {:?}", event);
 
     match event {
         WebhookEvent::Note {
@@ -46,9 +52,9 @@ fn handle_event(cpu: Arc<Cpu>, event: WebhookEvent) {
             if cmd.starts_with("@janet ") {
                 let user = object_attributes.author_id;
 
-                let merge_request = MergeRequestPtr::Id {
-                    project: ProjectPtr::Id(project.id),
-                    merge_request: merge_request.id,
+                let merge_request = MergeRequestPtr::Iid {
+                    project: Some(ProjectPtr::Id(project.id)),
+                    merge_request: merge_request.iid,
                 };
 
                 let cmd = &cmd[7..]; // TODO

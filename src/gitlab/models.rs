@@ -1,23 +1,23 @@
 pub use self::{
     merge_request::*,
-    merge_request_id::*,
-    merge_request_ptr::*,
-    note::*,
+    merge_request_iid::*,
+    namespace::*,
+    namespace_id::*,
+    namespace_name::*,
     project::*,
     project_id::*,
     project_name::*,
-    project_ptr::*,
     user_id::*,
-    webhook_event::*,
+    webhook::*,
 };
 
 mod merge_request;
-mod merge_request_id;
-mod merge_request_ptr;
-mod note;
+mod merge_request_iid;
+mod namespace;
+mod namespace_id;
+mod namespace_name;
 mod project;
 mod project_id;
 mod project_name;
-mod project_ptr;
 mod user_id;
-mod webhook_event;
+mod webhook;

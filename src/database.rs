@@ -30,12 +30,17 @@ impl Database {
     }
 
     #[cfg(test)]
-    pub async fn in_memory() -> Self {
+    pub async fn mock() -> Self {
         Self::new(DatabaseConfig {
             path: "sqlite::memory:".into(),
         })
         .await
         .unwrap()
+    }
+
+    #[cfg(test)]
+    pub async fn lock(&self) -> tokio::sync::MutexGuard<'_, SqliteConnection> {
+        self.conn.lock().await
     }
 
     pub fn logs(&self) -> LogsRepository {

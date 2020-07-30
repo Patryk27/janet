@@ -3,9 +3,8 @@ use crate::gitlab::GitLabClient;
 use crate::interface::{Command, CommandTx, Event, EventTx};
 use std::sync::Arc;
 use tokio::sync::mpsc;
-use tokio::task;
 
-mod process;
+mod processes;
 
 #[derive(Clone, Debug)]
 pub struct Cpu {
@@ -18,7 +17,7 @@ impl Cpu {
         let (cmd_tx, cmd_rx) = mpsc::unbounded_channel();
         let (evt_tx, evt_rx) = mpsc::unbounded_channel();
 
-        task::spawn(process::launch(db, gitlab, cmd_rx, evt_rx));
+        processes::launch(db, gitlab, cmd_rx, evt_rx);
 
         Self { cmd_tx, evt_tx }
     }
