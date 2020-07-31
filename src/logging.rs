@@ -1,4 +1,6 @@
 use anyhow::Result;
+use colored::Colorize;
+use fern::colors::{Color, ColoredLevelConfig};
 use std::{sync, thread};
 
 pub fn init() -> Result<()> {
@@ -10,14 +12,18 @@ pub fn init() -> Result<()> {
         }
     });
 
+    let colors = ColoredLevelConfig::new()
+        .debug(Color::Magenta)
+        .info(Color::Blue);
+
     fern::Dispatch::new()
-        .format(|out, message, record| {
+        .format(move |out, message, record| {
             out.finish(format_args!(
-                "{}[{}][{}] {}",
+                "{} {} {} {}",
                 chrono::Local::now().format("[%Y-%m-%d %H:%M:%S]"),
-                record.target(),
-                record.level(),
-                message
+                colors.color(record.level()),
+                record.target().dimmed(),
+                message,
             ))
         })
         .level(log::LevelFilter::Trace)

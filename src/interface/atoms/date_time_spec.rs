@@ -2,6 +2,7 @@ use chrono::{DateTime, Utc};
 use serde::Serialize;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+#[serde(tag = "type", content = "payload")]
 pub enum DateTimeSpec {
     Today { hour: usize, minute: usize },
     Tomorrow { hour: usize, minute: usize },

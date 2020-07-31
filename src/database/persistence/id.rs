@@ -3,12 +3,13 @@ use sqlx::encode::IsNull;
 use sqlx::error::BoxDynError;
 use sqlx::sqlite::Sqlite;
 use sqlx::Database;
+use std::fmt;
 use std::marker::PhantomData;
 use std::str::FromStr;
 use uuid::Uuid;
 
 // TODO add custom Debug impl
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug)]
 pub struct Id<T> {
     id: Uuid,
     _model: PhantomData<T>,
@@ -34,6 +35,22 @@ impl<T> Clone for Id<T> {
 
 impl<T> Copy for Id<T> {
     //
+}
+
+impl<T> PartialEq<Id<T>> for Id<T> {
+    fn eq(&self, other: &Id<T>) -> bool {
+        self.id == other.id
+    }
+}
+
+impl<T> Eq for Id<T> {
+    //
+}
+
+impl<T> fmt::Display for Id<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.id)
+    }
 }
 
 impl<T> sqlx::Type<Sqlite> for Id<T> {

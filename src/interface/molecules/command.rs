@@ -11,6 +11,7 @@ pub type CommandTx = mpsc::UnboundedSender<Command>;
 pub type CommandRx = mpsc::UnboundedReceiver<Command>;
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(tag = "type", content = "payload")]
 pub enum Command {
     AddMergeRequestDependency {
         user: UserId,

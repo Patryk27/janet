@@ -40,9 +40,9 @@ async fn main() -> Result<()> {
     let db = {
         log::info!("Initializing database (path = {})", config.database.path);
 
-        if config.database.path == "sqlite::memory:" {
+        if config.database.path.contains(":memory:") {
             log::warn!("");
-            log::warn!("!! RUNNING WITH AN IN-MEMORY DATABASE !!");
+            log::warn!("!! STARTING WITH AN IN-MEMORY DATABASE !!");
             log::warn!("When you restart Janet, she'll forget everything.");
             log::warn!(
                 "To get rid of this warning, please change `database.path` to point at a file."
@@ -59,7 +59,7 @@ async fn main() -> Result<()> {
         log::info!("Initializing GitLab client");
 
         Arc::new(
-            gitlab::GitLabClient::init(config.gitlab)
+            gitlab::GitLabClient::init(config.gitlab.client)
                 .await
                 .context("Couldn't initialize GitLab client")?,
         )
@@ -71,7 +71,13 @@ async fn main() -> Result<()> {
         Arc::new(cpu::Cpu::init(db, gitlab.clone()))
     };
 
-    http::init(config.http, cpu).await;
+    let gitlab_webhook_handler = Arc::new(gitlab::GitLabWebhookHandler::new(
+        config.bot.name,
+        config.gitlab.webhook_secret,
+        cpu.clone(),
+    ));
+
+    http::init(config.http, gitlab_webhook_handler).await;
 
     log::info!("Shutting down");
 

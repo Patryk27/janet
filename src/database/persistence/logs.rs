@@ -19,6 +19,9 @@ impl LogsRepository {
 
     pub async fn add(&self, log: impl Into<NewLog>) -> Result<()> {
         let log = log.into();
+
+        ::log::trace!("add(); log={:?}", log);
+
         let mut conn = self.db.conn.lock().await;
 
         sqlx::query("INSERT INTO logs (event, payload) VALUES (?, ?)")

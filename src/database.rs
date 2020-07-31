@@ -11,7 +11,7 @@ mod persistence;
 
 #[derive(Clone)]
 pub struct Database {
-    conn: Arc<Mutex<SqliteConnection>>,
+    conn: Arc<Mutex<SqliteConnection>>, // TODO move arc outside?
 }
 
 impl Database {
@@ -32,7 +32,7 @@ impl Database {
     #[cfg(test)]
     pub async fn mock() -> Self {
         Self::new(DatabaseConfig {
-            path: "sqlite::memory:".into(),
+            path: ":memory:".into(),
         })
         .await
         .unwrap()

@@ -2,7 +2,7 @@
 name = "janet"
 
 [database]
-path = "sqlite::memory:" # TODO
+path = "janet.db"
 
 [http]
 addr = "0.0.0.0:1234"

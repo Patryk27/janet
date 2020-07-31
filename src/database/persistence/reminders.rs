@@ -18,7 +18,9 @@ impl RemindersRepository {
         Self { db }
     }
 
-    pub async fn create(&self, reminder: &NewReminder) -> Result<Id<Reminder>> {
+    pub async fn add(&self, reminder: &NewReminder) -> Result<Id<Reminder>> {
+        log::trace!("add(); reminder={:?}", reminder);
+
         let mut conn = self.db.conn.lock().await;
         let id = Id::new();
 
@@ -45,7 +47,9 @@ impl RemindersRepository {
         Ok(id)
     }
 
-    pub async fn delete(&self, id: Id<Reminder>) -> Result<()> {
+    pub async fn remove(&self, id: Id<Reminder>) -> Result<()> {
+        log::trace!("remove(); id={}", id);
+
         let mut conn = self.db.conn.lock().await;
 
         sqlx::query("DELETE FROM reminders WHERE id = ?")
@@ -58,6 +62,8 @@ impl RemindersRepository {
     }
 
     pub async fn find_overdue(&self, now: DateTime<Utc>) -> Result<Vec<Reminder>> {
+        log::trace!("find_overdue(); now={:?}", now);
+
         let mut conn = self.db.conn.lock().await;
 
         sqlx::query_as("SELECT * FROM reminders WHERE remind_at >= ? ORDER BY remind_at ASC")
@@ -96,7 +102,7 @@ mod tests {
             let db = Database::mock().await;
 
             db.reminders()
-                .create(&NewReminder {
+                .add(&NewReminder {
                     user_id: 1,
                     project_id: 2,
                     merge_request_iid: 3,
@@ -106,7 +112,7 @@ mod tests {
                 .unwrap();
 
             db.reminders()
-                .create(&NewReminder {
+                .add(&NewReminder {
                     user_id: 4,
                     project_id: 5,
                     merge_request_iid: 6,
@@ -124,7 +130,7 @@ mod tests {
 
             for hour in 1..6 {
                 db.reminders()
-                    .create(&NewReminder {
+                    .add(&NewReminder {
                         user_id: 1,
                         project_id: 2,
                         merge_request_iid: 3,
@@ -138,8 +144,6 @@ mod tests {
         }
     }
 
-    // TODO mod delete { }
-
     mod find_overdue {
         use super::*;
 
@@ -149,7 +153,7 @@ mod tests {
 
             for i in 1..10 {
                 db.reminders()
-                    .create(&NewReminder {
+                    .add(&NewReminder {
                         user_id: i as _,
                         project_id: 2,
                         merge_request_iid: 3,

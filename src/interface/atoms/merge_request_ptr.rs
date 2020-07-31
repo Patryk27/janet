@@ -4,6 +4,7 @@ use anyhow::{anyhow, Context, Result};
 use serde::Serialize;
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash, Serialize)]
+#[serde(tag = "type", content = "payload")]
 pub enum MergeRequestPtr {
     Iid {
         project: Option<ProjectPtr>,

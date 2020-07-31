@@ -34,10 +34,11 @@ mod tests {
     use crate::interface::ProjectPtr;
 
     fn assert(expected: MergeRequestPtr, input: &str) {
-        assert!(
+        assert_eq!(
             Ok(("", expected)),
             merge_request_ptr(input),
-            format!("Input: {}", input)
+            "Input: {}",
+            input
         );
     }
 

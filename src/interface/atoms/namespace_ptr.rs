@@ -3,6 +3,7 @@ use anyhow::{Context, Result};
 use serde::Serialize;
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash, Serialize)]
+#[serde(tag = "type", content = "payload")]
 pub enum NamespacePtr {
     Id(NamespaceId),
     Name(NamespaceName),

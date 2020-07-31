@@ -5,10 +5,15 @@ use serde::{Deserialize, Serialize};
 #[serde(tag = "event_type")]
 #[serde(rename_all = "snake_case")]
 pub enum WebhookEvent {
+    MergeRequest {
+        project: WebhookProject,
+        object_attributes: WebhookMergeRequestAttrs,
+    },
+
     Note {
-        object_attributes: WebhookNote,
-        project: Option<WebhookProject>,
-        merge_request: Option<WebhookMergeRequest>,
+        project: WebhookProject,
+        merge_request: WebhookMergeRequest,
+        object_attributes: WebhookNoteAttrs,
     },
 }
 
@@ -24,7 +29,13 @@ pub struct WebhookMergeRequest {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct WebhookNote {
+pub struct WebhookMergeRequestAttrs {
+    pub action: String,
+    pub iid: MergeRequestIid,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct WebhookNoteAttrs {
     pub author_id: UserId,
     pub description: String,
 }

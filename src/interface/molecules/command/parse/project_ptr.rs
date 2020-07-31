@@ -25,11 +25,7 @@ mod tests {
     use crate::gitlab::{ProjectId, ProjectName};
 
     fn assert(expected: ProjectPtr, input: &str) {
-        assert!(
-            Ok(("", expected)),
-            project_ptr(input),
-            format!("Input: {}", input),
-        );
+        assert_eq!(Ok(("", expected)), project_ptr(input), "Input: {}", input);
     }
 
     #[test]
@@ -44,6 +40,13 @@ mod tests {
             "hello-world",
         );
 
-        // TODO test with namespace
+        // assert( TODO
+        //     ProjectPtr::Name {
+        //         namespace:
+        // Some(NamespacePtr::Name(NamespaceName::new("somewhere-else"))),
+        //         name: ProjectName::new("hello-world"),
+        //     },
+        //     "somewhere-else/hello-world",
+        // );
     }
 }
