@@ -42,13 +42,9 @@ impl GitLabClient {
     }
 
     pub async fn init(config: GitLabClientConfig) -> Result<Self> {
-        let url = config.url.clone();
         let gitlab = Self::new(config)?;
 
-        gitlab
-            .ping()
-            .await
-            .with_context(|| format!("Couldn't ping GitLab at {}", url))?;
+        gitlab.ping().await?;
 
         Ok(gitlab)
     }

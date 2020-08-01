@@ -1,0 +1,13 @@
+[bot]
+name = "janet"
+
+[database]
+path = "/tmp/janet.db"
+
+[http]
+addr = "127.0.0.1:10000"
+
+[gitlab]
+url = "http://127.0.0.1:10001"
+personal_access_token = "token"
+webhook_secret = "secret"

@@ -16,8 +16,6 @@ pub fn handle_gitlab_webhook(
 }
 
 fn handle(webhook_handler: Arc<GitLabWebhookHandler>, body: Bytes) -> impl Reply {
-    std::fs::write("/tmp/event.json", &body).unwrap();
-
     match serde_json::from_slice(&body) {
         Ok(event) => {
             webhook_handler.handle(event);

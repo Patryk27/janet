@@ -1,15 +1,25 @@
 let
   pkgs = import ./nix/pkgs.nix;
 
+  app-deps = with pkgs; [
+    lld
+    openssl
+    pkg-config
+  ];
+
+  dev-deps = with pkgs; [
+    nixpkgs-fmt
+  ];
+
+  # TODO extract to `tests/deps.nix` maybe?
+  test-deps = with pkgs; [
+    (python3.withPackages (pp: with pp; [
+      jsonpickle
+    ]))
+  ];
+
 in
   pkgs.mkShell {
-    buildInputs = with pkgs; [
-      lld
-      nixpkgs-fmt
-      openssl
-      pkg-config
-      sqlite
-    ];
-
+    buildInputs = app-deps ++ dev-deps ++ test-deps;
     LD_LIBRARY_PATH="${pkgs.openssl.out}/lib";
   }
