@@ -1,6 +1,6 @@
 pub use self::{config::*, models::*};
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use reqwest::header::HeaderMap;
 use reqwest::{header, Client, Url};
 use std::iter::FromIterator;

@@ -15,6 +15,7 @@ let
   test-deps = with pkgs; [
     (python3.withPackages (pp: with pp; [
       jsonpickle
+      requests
     ]))
   ];
 

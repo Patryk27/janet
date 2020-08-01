@@ -7,6 +7,7 @@ pub use self::{
     project::*,
     project_id::*,
     project_name::*,
+    user::*,
     user_id::*,
     webhook::*,
 };
@@ -19,5 +20,6 @@ mod namespace_name;
 mod project;
 mod project_id;
 mod project_name;
+mod user;
 mod user_id;
 mod webhook;

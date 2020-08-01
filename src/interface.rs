@@ -1,4 +1,4 @@
-pub use self::{atoms::*, molecules::*};
+pub use self::{galaxies::*, planets::*};
 
-mod atoms;
-mod molecules;
+mod galaxies;
+mod planets;

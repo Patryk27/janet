@@ -1,9 +1,11 @@
+use std::sync::Arc;
+
+use anyhow::{bail, Result};
+use tokio::stream::StreamExt;
+
 use crate::database::Database;
 use crate::gitlab::{GitLabClient, MergeRequestIid, ProjectId};
 use crate::interface::{Event, EventRx};
-use anyhow::{bail, Result};
-use std::sync::Arc;
-use tokio::stream::StreamExt;
 
 pub async fn handle_events(
     db: Database,
@@ -48,16 +50,20 @@ async fn handle_event(db: Database, gitlab: Arc<GitLabClient>, evt: &Event) -> R
                 .await?;
 
             for merge_request in merge_requests {
+                let user_id = merge_request.user_id;
+
                 let project_id = ProjectId::new(merge_request.source_project_id as _);
 
                 let merge_request_iid =
                     MergeRequestIid::new(merge_request.source_merge_request_iid as _);
 
+                let user = gitlab.user(&user_id.to_string()).await?;
+
                 gitlab
                     .create_merge_request_note(
                         project_id.inner().to_string(),
                         merge_request_iid.inner().to_string(),
-                        "@someone yass!",
+                        format!("@{} yass!", user.username),
                     )
                     .await?;
 
