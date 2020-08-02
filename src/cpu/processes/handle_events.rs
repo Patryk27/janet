@@ -70,8 +70,6 @@ async fn handle_event(db: Database, gitlab: Arc<GitLabClient>, evt: &Event) -> R
                 // TODO delete it
             }
         }
-
-        _ => (),
     }
 
     Ok(())

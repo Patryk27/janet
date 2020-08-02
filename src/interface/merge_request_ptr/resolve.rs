@@ -1,18 +1,6 @@
 use crate::gitlab::{GitLabClient, MergeRequestIid, ProjectId};
-use crate::interface::{ProjectPtr, PtrContext};
-use anyhow::{anyhow, Context, Result};
-use serde::Serialize;
-
-#[derive(Clone, Debug, Eq, PartialEq, Hash, Serialize)]
-#[serde(tag = "type", content = "payload")]
-pub enum MergeRequestPtr {
-    Iid {
-        project: Option<ProjectPtr>,
-        merge_request: MergeRequestIid,
-    },
-
-    Url(String),
-}
+use crate::interface::{MergeRequestPtr, PtrContext};
+use anyhow::*;
 
 impl MergeRequestPtr {
     pub async fn resolve(

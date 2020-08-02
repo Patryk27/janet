@@ -1,18 +1,6 @@
-use crate::gitlab::{GitLabClient, ProjectId, ProjectName};
-use crate::interface::{NamespacePtr, PtrContext};
-use anyhow::{anyhow, Context, Result};
-use serde::Serialize;
-
-#[derive(Clone, Debug, Eq, PartialEq, Hash, Serialize)]
-#[serde(tag = "type", content = "payload")]
-pub enum ProjectPtr {
-    Id(ProjectId),
-
-    Name {
-        namespace: Option<NamespacePtr>,
-        name: ProjectName,
-    },
-}
+use crate::gitlab::{GitLabClient, ProjectId};
+use crate::interface::{ProjectPtr, PtrContext};
+use anyhow::*;
 
 impl ProjectPtr {
     pub async fn resolve(&self, gitlab: &GitLabClient, ctxt: &PtrContext) -> Result<ProjectId> {
@@ -42,6 +30,7 @@ impl ProjectPtr {
             .with_context(|| format!("Couldn't resolve project ptr: {:?}", self))
     }
 }
+
 //
 // #[cfg(test)]
 // mod tests {

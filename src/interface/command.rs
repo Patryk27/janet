@@ -1,7 +1,5 @@
-use self::parse::*;
 use crate::gitlab::UserId;
 use crate::interface::{DateTimeSpec, MergeRequestPtr};
-use anyhow::Result;
 use serde::Serialize;
 use tokio::sync::mpsc;
 
@@ -30,17 +28,4 @@ pub enum Command {
         merge_request: MergeRequestPtr,
         remind_at: DateTimeSpec,
     },
-}
-
-impl Command {
-    pub fn parse(user: UserId, merge_request: MergeRequestPtr, cmd: &str) -> Result<Command> {
-        log::debug!(
-            "parse(); cmd={}, user={}, merge_request={:?}",
-            cmd,
-            user.inner(),
-            merge_request,
-        );
-
-        Ok(parse(user, merge_request, cmd).unwrap().1) // TODO
-    }
 }

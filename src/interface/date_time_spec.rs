@@ -1,6 +1,9 @@
 use chrono::{DateTime, Utc};
 use serde::Serialize;
 
+mod parse;
+mod resolve;
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 #[serde(tag = "type", content = "payload")]
 pub enum DateTimeSpec {
@@ -19,10 +22,4 @@ pub enum DateTimeSpecDayOfWeek {
     Friday,
     Saturday,
     Sunday,
-}
-
-impl DateTimeSpec {
-    pub fn to_absolute(self, now: DateTime<Utc>) -> DateTime<Utc> {
-        todo!()
-    }
 }
