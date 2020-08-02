@@ -1,4 +1,5 @@
 pub use self::{
+    discussion_id::*,
     merge_request::*,
     merge_request_iid::*,
     namespace::*,
@@ -12,6 +13,7 @@ pub use self::{
     webhook::*,
 };
 
+mod discussion_id;
 mod merge_request;
 mod merge_request_iid;
 mod namespace;

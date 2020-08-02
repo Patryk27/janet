@@ -12,13 +12,16 @@ pub fn handle_gitlab_webhook(
         .and(warp::any().map(move || webhook_handler.clone()))
         .and(body::content_length_limit(1 * 1024 * 1024))
         .and(body::bytes())
-        .map(handle)
+        .and_then(handle)
 }
 
-fn handle(webhook_handler: Arc<GitLabWebhookHandler>, body: Bytes) -> impl Reply {
+async fn handle(
+    webhook_handler: Arc<GitLabWebhookHandler>,
+    body: Bytes,
+) -> Result<impl Reply, Rejection> {
     match serde_json::from_slice(&body) {
         Ok(event) => {
-            webhook_handler.handle(event);
+            webhook_handler.handle(event).await;
         }
 
         Err(error) => {
@@ -30,5 +33,5 @@ fn handle(webhook_handler: Arc<GitLabWebhookHandler>, body: Bytes) -> impl Reply
         }
     }
 
-    StatusCode::NO_CONTENT
+    Ok(StatusCode::NO_CONTENT)
 }

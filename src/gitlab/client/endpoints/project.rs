@@ -29,6 +29,7 @@ impl GitLabClient {
     }
 }
 
+#[cfg(test)]
 mod tests {
     // TODO
 }

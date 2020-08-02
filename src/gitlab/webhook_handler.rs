@@ -1,5 +1,6 @@
 use crate::cpu::Cpu;
 use crate::gitlab::{
+    GitLabClient,
     WebhookEvent,
     WebhookMergeRequest,
     WebhookMergeRequestAttrs,
@@ -7,57 +8,76 @@ use crate::gitlab::{
     WebhookProject,
 };
 use crate::interface::{Command, Event, MergeRequestPtr, ProjectPtr};
+use anyhow::Result;
 use std::sync::Arc;
 
 pub struct GitLabWebhookHandler {
     bot_name: String,
-
     // TODO
     webhook_secret: String,
-
+    gitlab: Arc<GitLabClient>,
     cpu: Arc<Cpu>,
 }
 
 impl GitLabWebhookHandler {
-    pub fn new(bot_name: String, webhook_secret: String, cpu: Arc<Cpu>) -> Self {
+    pub fn new(
+        bot_name: String,
+        webhook_secret: String,
+        gitlab: Arc<GitLabClient>,
+        cpu: Arc<Cpu>,
+    ) -> Self {
         Self {
             bot_name,
             webhook_secret,
+            gitlab,
             cpu,
         }
     }
 
-    pub fn handle(&self, event: WebhookEvent) {
+    pub async fn handle(&self, event: WebhookEvent) {
         log::debug!("Handling event: {:?}", event);
 
         match event {
             WebhookEvent::MergeRequest {
                 project,
                 object_attributes,
-            } => self.handle_merge_request(project, object_attributes),
+            } => self.handle_merge_request(project, object_attributes).await,
 
             WebhookEvent::Note {
                 object_attributes,
                 project,
                 merge_request,
-            } => self.handle_note(project, merge_request, object_attributes),
+            } => {
+                self.handle_note(project, merge_request, object_attributes)
+                    .await
+            }
         }
     }
 
-    fn handle_merge_request(
+    async fn handle_merge_request(
         &self,
         project: WebhookProject,
         object_attributes: WebhookMergeRequestAttrs,
     ) {
-        let merge_request = MergeRequestPtr::Iid {
-            project: Some(ProjectPtr::Id(project.id)),
-            merge_request: object_attributes.iid,
-        };
+        let project_id = project.id;
+        let merge_request_iid = object_attributes.iid;
 
         let event = match object_attributes.action.as_str() {
-            "close" => Some(Event::MergeRequestClosed(merge_request)),
-            "merge" => Some(Event::MergeRequestMerged(merge_request)),
-            "reopen" => todo!(),
+            "close" => Some(Event::MergeRequestClosed {
+                project_id,
+                merge_request_iid,
+            }),
+
+            "merge" => Some(Event::MergeRequestMerged {
+                project_id,
+                merge_request_iid,
+            }),
+
+            "reopen" => Some(Event::MergeRequestReopened {
+                project_id,
+                merge_request_iid,
+            }),
+
             _ => None,
         };
 
@@ -66,7 +86,7 @@ impl GitLabWebhookHandler {
         }
     }
 
-    fn handle_note(
+    async fn handle_note(
         &self,
         project: WebhookProject,
         merge_request: WebhookMergeRequest,
@@ -75,28 +95,46 @@ impl GitLabWebhookHandler {
         let cmd = object_attributes.description;
 
         // TODO hard-coded janet
-        if cmd.starts_with("@janet ") {
-            let user = object_attributes.author_id;
+        if !cmd.starts_with("@janet ") {
+            return;
+        }
 
-            let merge_request = MergeRequestPtr::Iid {
-                project: Some(ProjectPtr::Id(project.id)),
-                merge_request: merge_request.iid,
-            };
+        // TODO hard-coded 7
+        let cmd = cmd[7..].trim();
 
-            let cmd = &cmd[7..]; // TODO
+        let user = object_attributes.author_id;
+        let discussion = object_attributes.discussion_id;
 
-            match Command::parse(user, merge_request, cmd) {
-                Ok(cmd) => {
-                    self.cpu.handle_command(cmd);
-                }
+        let merge_request_ptr = MergeRequestPtr::Iid {
+            project: Some(ProjectPtr::Id(project.id)),
+            merge_request: merge_request.iid,
+        };
 
-                Err(err) => {
-                    log::error!(
-                        "Couldn't parse command `{}`; the underlying error was: {}",
-                        cmd,
-                        err
-                    );
-                }
+        match Command::parse(user, discussion.clone(), merge_request_ptr, cmd) {
+            Ok(cmd) => {
+                self.cpu.handle_command(cmd);
+            }
+
+            Err(err) => {
+                log::warn!(
+                    "Couldn't parse command `{}`; the underlying error was: {}",
+                    cmd,
+                    err
+                );
+
+                let _: Result<()> = try {
+                    let username = self.gitlab.user(user).await?.username;
+
+                    self
+                        .gitlab
+                        .create_merge_request_note(
+                            project.id,
+                            merge_request.iid,
+                            &discussion,
+                            format!("@{}: sorry, I'm not sure what you mean - could you please remove your comment and re-send it?", username),
+                        )
+                        .await?;
+                };
             }
         }
     }

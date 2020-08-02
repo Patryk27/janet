@@ -1,4 +1,4 @@
-use crate::gitlab::{MergeRequestIid, NamespaceName, ProjectId, UserId};
+use crate::gitlab::{DiscussionId, MergeRequestIid, NamespaceName, ProjectId, UserId};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize)]
@@ -38,4 +38,5 @@ pub struct WebhookMergeRequestAttrs {
 pub struct WebhookNoteAttrs {
     pub author_id: UserId,
     pub description: String,
+    pub discussion_id: DiscussionId,
 }

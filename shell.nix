@@ -9,6 +9,7 @@ let
 
   dev-deps = with pkgs; [
     nixpkgs-fmt
+    sqlite
   ];
 
   # TODO extract to `tests/deps.nix` maybe?

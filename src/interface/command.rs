@@ -1,4 +1,4 @@
-use crate::gitlab::UserId;
+use crate::gitlab::{DiscussionId, UserId};
 use crate::interface::{DateTimeSpec, MergeRequestPtr};
 use serde::Serialize;
 use tokio::sync::mpsc;
@@ -13,18 +13,21 @@ pub type CommandRx = mpsc::UnboundedReceiver<Command>;
 pub enum Command {
     AddMergeRequestDependency {
         user: UserId,
+        discussion: DiscussionId,
         source: MergeRequestPtr,
         dependency: MergeRequestPtr,
     },
 
     RemoveMergeRequestDependency {
         user: UserId,
+        discussion: DiscussionId,
         source: MergeRequestPtr,
         dependency: MergeRequestPtr,
     },
 
     AddReminder {
         user: UserId,
+        discussion: DiscussionId,
         merge_request: MergeRequestPtr,
         remind_at: DateTimeSpec,
     },

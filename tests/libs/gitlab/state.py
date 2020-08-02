@@ -1,10 +1,4 @@
-from typing import Dict
-
-
-class GitLabUser:
-    def __init__(self, id: int, username: str) -> None:
-        self.id = id
-        self.username = username
+from typing import Dict, Tuple
 
 
 class GitLabNamespace:
@@ -20,13 +14,24 @@ class GitLabProject:
         self.namespace = namespace
 
 
+class GitLabMergeRequest:
+    def __init__(self, project_id: int, iid: int, web_url: str) -> None:
+        self.project_id = project_id
+        self.iid = iid
+        self.web_url = web_url
+
+
+class GitLabUser:
+    def __init__(self, id: int, username: str) -> None:
+        self.id = id
+        self.username = username
+
+
 class GitLabState:
-    users: Dict[int, GitLabUser] = {}
     namespaces: Dict[int, GitLabNamespace] = {}
     projects: Dict[int, GitLabProject] = {}
-
-    def add_user(self, id: int, username: str) -> None:
-        self.users[id] = GitLabUser(id, username)
+    merge_requests: Dict[Tuple[int, int], GitLabMergeRequest] = {}
+    users: Dict[int, GitLabUser] = {}
 
     def add_namespace(self, id: int, name: str, full_path: str) -> None:
         self.namespaces[id] = GitLabNamespace(id, name, full_path)
@@ -38,3 +43,12 @@ class GitLabState:
         namespace = self.namespaces[namespace_id]
 
         self.projects[id] = GitLabProject(id, namespace)
+
+    def add_merge_request(self, project_id: int, iid: int, web_url: str) -> None:
+        if project_id not in self.projects:
+            raise Exception(f"Project not found: {project_id}")
+
+        self.merge_requests[(project_id, iid)] = GitLabMergeRequest(project_id, iid, web_url)
+
+    def add_user(self, id: int, username: str) -> None:
+        self.users[id] = GitLabUser(id, username)

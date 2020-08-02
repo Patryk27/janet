@@ -11,6 +11,7 @@ CREATE TABLE merge_request_dependencies (
     user_id INT NOT NULL,
     source_project_id INT NOT NULL,
     source_merge_request_iid INT NOT NULL,
+    source_discussion_id TEXT,
     dependency_project_id INT NOT NULL,
     dependency_merge_request_iid INT NOT NULL,
     checked_at DATETIME NOT NULL DEFAULT (datetime('now', 'localtime')),

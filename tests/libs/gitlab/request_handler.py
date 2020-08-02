@@ -20,13 +20,22 @@ class GitLabRequestHandler(BaseHTTPRequestHandler):
 
         self.routes = {
             "GET": {
-                "^/$": handle_ping,
-                "^/api/v4/projects/(\\d+)$": handle_get_project,
-                "^/api/v4/users/(\\d+)$": handle_get_user,
+                "^/$":
+                    handle_ping,
+
+                "^/api/v4/projects/(\\d+)$":
+                    handle_get_project,
+
+                "^/api/v4/projects/(\\d+)/merge_requests/(\\d+)$":
+                    handle_get_merge_request,
+
+                "^/api/v4/users/(\\d+)$":
+                    handle_get_user,
             },
 
             "POST": {
-                "^/api/v4/projects/(\\d+)/merge_requests/(\\d+)/notes$": handle_create_merge_request_note,
+                "^/api/v4/projects/(\\d+)/merge_requests/(\\d+)/discussions/([a-zA-Z0-9]+)/notes$":
+                    handle_create_merge_request_note,
             }
         }
 
@@ -82,6 +91,22 @@ def handle_get_project(self: GitLabRequestHandler, matches) -> None:
         self.wfile.write(b"")
 
 
+def handle_get_merge_request(self: GitLabRequestHandler, matches) -> None:
+    project_id = int(matches.group(1))
+    merge_request_iid = int(matches.group(2))
+
+    if (project_id, merge_request_iid) in self.state.merge_requests:
+        merge_request = self.state.merge_requests[(project_id, merge_request_iid)]
+
+        self.send_response(requests.codes.ok)
+        self.end_headers()
+        self.wfile.write(json.dumps(merge_request, cls=GitLabModelEncoder).encode("utf-8"))
+    else:
+        self.send_response(requests.codes.not_found)
+        self.end_headers()
+        self.wfile.write(b"")
+
+
 def handle_get_user(self: GitLabRequestHandler, matches) -> None:
     user_id = int(matches.group(1))
 
@@ -102,15 +127,18 @@ def handle_create_merge_request_note(self: GitLabRequestHandler, matches) -> Non
 
     project_id = int(matches.group(1))
     merge_request_iid = int(matches.group(2))
+    discussion_id = str(matches.group(3))
     note = body['body']
 
-    matches = [x for x in self.expect.merge_request_notes if x.matches(project_id, merge_request_iid, note)]
+    matches = [x for x in self.expect.merge_request_notes if
+               x.matches(project_id, merge_request_iid, discussion_id, note)]
 
     if not len(matches):
         raise Exception(
             f"Janet created an unexpected merge request note: " +
             f"project_id={project_id}, " +
             f"merge_request_iid={merge_request_iid}, " +
+            f"discussion_id={discussion_id}, " +
             f"note={note}"
         )
 

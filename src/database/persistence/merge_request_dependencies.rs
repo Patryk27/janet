@@ -31,16 +31,18 @@ impl MergeRequestDependenciesRepository {
                 user_id,
                 source_project_id,
                 source_merge_request_iid,
+                source_discussion_id,
                 dependency_project_id,
                 dependency_merge_request_iid
             )
-            VALUES (?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             ",
         )
         .bind(id)
         .bind(dep.user_id)
         .bind(dep.source_project_id)
         .bind(dep.source_merge_request_iid)
+        .bind(&dep.source_discussion_id)
         .bind(dep.dependency_project_id)
         .bind(dep.dependency_merge_request_iid)
         .execute(conn.deref_mut())
@@ -48,6 +50,18 @@ impl MergeRequestDependenciesRepository {
         .with_context(|| format!("Couldn't add merge request dependency: {:?}", dep))?;
 
         Ok(id)
+    }
+
+    pub async fn get(&self, id: Id<MergeRequestDependency>) -> Result<MergeRequestDependency> {
+        log::trace!("get(); id={}", id);
+
+        let mut conn = self.db.conn.lock().await;
+
+        sqlx::query_as("SELECT * FROM merge_request_dependencies WHERE id = ?")
+            .bind(id)
+            .fetch_one(conn.deref_mut())
+            .await
+            .with_context(|| format!("Couldn't load merge request dependency: {}", id))
     }
 
     pub async fn touch_checked_at(&self, id: Id<MergeRequestDependency>) -> Result<()> {
@@ -132,16 +146,29 @@ mod tests {
         async fn test() {
             let db = Database::mock().await;
 
-            db.merge_request_dependencies()
+            let id = db
+                .merge_request_dependencies()
                 .add(&NewMergeRequestDependency {
                     user_id: 1,
                     source_project_id: 100,
                     source_merge_request_iid: 1,
+                    source_discussion_id: "CAFEBABE".into(),
                     dependency_project_id: 120,
                     dependency_merge_request_iid: 3,
                 })
                 .await
                 .unwrap();
+
+            let dep = db.merge_request_dependencies().get(id).await.unwrap();
+
+            assert_eq!(id, dep.id);
+            assert_eq!(1, dep.user_id);
+            assert_eq!(100, dep.source_project_id);
+            assert_eq!(1, dep.source_merge_request_iid);
+            assert_eq!("CAFEBABE", dep.source_discussion_id);
+            assert_eq!(120, dep.dependency_project_id);
+            assert_eq!(3, dep.dependency_merge_request_iid);
+            assert_eq!(dep.checked_at, dep.created_at);
         }
     }
 
@@ -159,6 +186,7 @@ mod tests {
                     user_id: 1,
                     source_project_id: 100,
                     source_merge_request_iid: 1,
+                    source_discussion_id: "CAFEBABE".into(),
                     dependency_project_id: 120,
                     dependency_merge_request_iid: 3,
                 })
@@ -171,6 +199,7 @@ mod tests {
                     user_id: 1,
                     source_project_id: 100,
                     source_merge_request_iid: 2,
+                    source_discussion_id: "CAFEBABE".into(),
                     dependency_project_id: 120,
                     dependency_merge_request_iid: 3,
                 })
@@ -183,6 +212,7 @@ mod tests {
                     user_id: 1,
                     source_project_id: 110,
                     source_merge_request_iid: 1,
+                    source_discussion_id: "CAFEBABE".into(),
                     dependency_project_id: 130,
                     dependency_merge_request_iid: 1,
                 })

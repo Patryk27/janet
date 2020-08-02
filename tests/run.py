@@ -20,15 +20,22 @@ cwd = os.path.dirname(os.path.realpath(__file__))
 # --- #
 
 
-@test_case("Smoke tests / Merge request dependencies")
+@test_case("Merge request dependencies / Smoke test")
 def test(gitlab: GitLab, janet: Janet):
-    gitlab.state.add_user(id=20, username="foo")
-    gitlab.state.add_user(id=21, username="bar")
-    gitlab.state.add_user(id=25, username="zar")
     gitlab.state.add_namespace(id=1, name="test", full_path="test")
     gitlab.state.add_project(id=100, namespace_id=1)
+    gitlab.state.add_merge_request(project_id=100, iid=1, web_url="https://somewhere")
 
-    for author_id in [20, 21, 25]:
+    for (author_id, author_username) in [(20, "foo"), (21, "bar"), (25, "zar")]:
+        gitlab.state.add_user(id=author_id, username=author_username)
+
+        gitlab.expect.merge_request_note_created(
+            project_id=100,
+            merge_request_iid=1,
+            discussion_id=f"abcd{author_id}",
+            note=f"@{author_username} :+1:",
+        )
+
         janet.spoof_gitlab_webhook_event({
             "event_type": "note",
             "project": {
@@ -40,13 +47,18 @@ def test(gitlab: GitLab, janet: Janet):
             },
             "object_attributes": {
                 "author_id": author_id,
-                "description": "@janet +depends on !2"
+                "description": "@janet +depends on !2",
+                "discussion_id": f"abcd{author_id}",
             }
         })
 
-    gitlab.expect.merge_request_note_created(project_id=100, merge_request_iid=1, note="@foo yass!")
-    gitlab.expect.merge_request_note_created(project_id=100, merge_request_iid=1, note="@bar yass!")
-    gitlab.expect.merge_request_note_created(project_id=100, merge_request_iid=1, note="@zar yass!")
+    for (author_id, author_username) in [(20, "foo"), (21, "bar"), (25, "zar")]:
+        gitlab.expect.merge_request_note_created(
+            project_id=100,
+            merge_request_iid=1,
+            discussion_id=f"abcd{author_id}",
+            note=f"@{author_username} related merge request https://somewhere has been closed",
+        )
 
     janet.spoof_gitlab_webhook_event({
         "event_type": "merge_request",
@@ -60,8 +72,9 @@ def test(gitlab: GitLab, janet: Janet):
         }
     })
 
-    time.sleep(1)
+    time.sleep(5)
 
 
-if not TestCase.all()[0].run(executable, cwd):
-    sys.exit(1)
+for case in TestCase.all():
+    if not case.run(executable, cwd):
+        sys.exit(1)

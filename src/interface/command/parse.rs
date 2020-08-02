@@ -1,4 +1,4 @@
-use crate::gitlab::UserId;
+use crate::gitlab::{DiscussionId, UserId};
 use crate::interface::{Command, DateTimeSpec, MergeRequestPtr, Parse, ParseError, ParseResult};
 use nom::branch::alt;
 use nom::bytes::complete::tag_no_case;
@@ -6,31 +6,43 @@ use nom::combinator::all_consuming;
 use nom::IResult;
 
 impl Command {
-    pub fn parse(user: UserId, merge_request: MergeRequestPtr, cmd: &str) -> ParseResult<Self> {
+    pub fn parse(
+        user: UserId,
+        discussion: DiscussionId,
+        merge_request: MergeRequestPtr,
+        cmd: &str,
+    ) -> ParseResult<Self> {
         log::debug!(
-            "parse(); cmd={}, user={}, merge_request={:?}",
+            "parse(); cmd={}, user={}, discussion={}, merge_request={:?}",
             cmd,
             user.inner(),
+            discussion.as_ref(),
             merge_request,
         );
 
-        parse(user, merge_request, cmd)
+        parse(user, discussion, merge_request, cmd)
             .map(|(_, cmd)| cmd)
             .map_err(|_| ParseError::UnknownCommand)
     }
 }
 
-pub fn parse(user: UserId, merge_request: MergeRequestPtr, cmd: &str) -> IResult<&str, Command> {
+pub fn parse(
+    user: UserId,
+    discussion: DiscussionId,
+    merge_request: MergeRequestPtr,
+    cmd: &str,
+) -> IResult<&str, Command> {
     all_consuming(alt((
-        |i| add_merge_request_dependency(i, &user, &merge_request),
-        |i| remove_merge_request_dependency(i, &user, &merge_request),
-        |i| add_reminder(i, &user, &merge_request),
+        |i| add_merge_request_dependency(i, &user, &discussion, &merge_request),
+        |i| remove_merge_request_dependency(i, &user, &discussion, &merge_request),
+        |i| add_reminder(i, &user, &discussion, &merge_request),
     )))(cmd)
 }
 
 fn add_merge_request_dependency<'a>(
     i: &'a str,
     user: &UserId,
+    discussion: &DiscussionId,
     source: &MergeRequestPtr,
 ) -> IResult<&'a str, Command> {
     let (i, _) = tag_no_case("+depends on ")(i)?;
@@ -40,6 +52,7 @@ fn add_merge_request_dependency<'a>(
         i,
         Command::AddMergeRequestDependency {
             user: user.to_owned(),
+            discussion: discussion.to_owned(),
             source: source.to_owned(),
             dependency,
         },
@@ -49,6 +62,7 @@ fn add_merge_request_dependency<'a>(
 fn remove_merge_request_dependency<'a>(
     i: &'a str,
     user: &UserId,
+    discussion: &DiscussionId,
     source: &MergeRequestPtr,
 ) -> IResult<&'a str, Command> {
     let (i, _) = tag_no_case("-depends on ")(i)?;
@@ -58,6 +72,7 @@ fn remove_merge_request_dependency<'a>(
         i,
         Command::RemoveMergeRequestDependency {
             user: user.to_owned(),
+            discussion: discussion.to_owned(),
             source: source.to_owned(),
             dependency,
         },
@@ -67,6 +82,7 @@ fn remove_merge_request_dependency<'a>(
 fn add_reminder<'a>(
     i: &'a str,
     user: &UserId,
+    discussion: &DiscussionId,
     merge_request: &MergeRequestPtr,
 ) -> IResult<&'a str, Command> {
     let (i, _) = tag_no_case("+remind me ")(i)?;
@@ -76,6 +92,7 @@ fn add_reminder<'a>(
         i,
         Command::AddReminder {
             user: user.to_owned(),
+            discussion: discussion.to_owned(),
             merge_request: merge_request.to_owned(),
             remind_at,
         },
@@ -92,6 +109,10 @@ mod tests {
         UserId::new(1)
     }
 
+    fn discussion() -> DiscussionId {
+        DiscussionId::new("0000")
+    }
+
     fn merge_request() -> MergeRequestPtr {
         MergeRequestPtr::Iid {
             project: None,
@@ -100,7 +121,7 @@ mod tests {
     }
 
     fn assert(expected: Command, input: &str) {
-        let actual = Command::parse(user(), merge_request(), input).unwrap();
+        let actual = Command::parse(user(), discussion(), merge_request(), input).unwrap();
 
         assert_eq!(expected, actual, "Input: {}", input);
     }
@@ -119,6 +140,7 @@ mod tests {
                     assert(
                         Command::AddMergeRequestDependency {
                             user: user(),
+                            discussion: discussion(),
                             source: merge_request(),
                             dependency: MergeRequestPtr::Iid {
                                 project: None,
@@ -134,6 +156,7 @@ mod tests {
                     assert(
                         Command::AddMergeRequestDependency {
                             user: user(),
+                            discussion: discussion(),
                             source: merge_request(),
                             dependency: MergeRequestPtr::Iid {
                                 project: Some(ProjectPtr::Name {
@@ -153,6 +176,7 @@ mod tests {
                 assert(
                     Command::AddMergeRequestDependency {
                         user: user(),
+                        discussion: discussion(),
                         source: merge_request(),
                         dependency: MergeRequestPtr::Url(Url::new(
                             "https://gitlab.com/some/project/-/merge_requests/123",
@@ -178,6 +202,7 @@ mod tests {
                     assert(
                         Command::RemoveMergeRequestDependency {
                             user: user(),
+                            discussion: discussion(),
                             source: merge_request(),
                             dependency: MergeRequestPtr::Iid {
                                 project: None,
@@ -193,6 +218,7 @@ mod tests {
                     assert(
                         Command::RemoveMergeRequestDependency {
                             user: user(),
+                            discussion: discussion(),
                             source: merge_request(),
                             dependency: MergeRequestPtr::Iid {
                                 project: Some(ProjectPtr::Name {
@@ -212,6 +238,7 @@ mod tests {
                 assert(
                     Command::RemoveMergeRequestDependency {
                         user: user(),
+                        discussion: discussion(),
                         source: merge_request(),
                         dependency: MergeRequestPtr::Url(Url::new(
                             "https://gitlab.com/some/project/-/merge_requests/123",

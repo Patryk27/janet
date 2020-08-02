@@ -39,9 +39,18 @@ async fn handle_command(db: Database, gitlab: Arc<GitLabClient>, cmd: &Command) 
     match cmd {
         Command::AddMergeRequestDependency {
             user,
+            discussion,
+            source,
+            dependency,
+        }
+        | Command::RemoveMergeRequestDependency {
+            user,
+            discussion,
             source,
             dependency,
         } => {
+            let user = gitlab.user(*user).await?;
+
             let (source_project_id, source_merge_request_iid) =
                 source.resolve(&gitlab, &Default::default()).await?;
 
@@ -52,7 +61,6 @@ async fn handle_command(db: Database, gitlab: Arc<GitLabClient>, cmd: &Command) 
             let ctxt = PtrContext {
                 namespace_id: Some(source_project.namespace.id),
                 project_id: Some(source_project.id),
-                ..Default::default()
             };
 
             let (dependency_project_id, dependency_merge_request_iid) =
@@ -60,12 +68,22 @@ async fn handle_command(db: Database, gitlab: Arc<GitLabClient>, cmd: &Command) 
 
             db.merge_request_dependencies()
                 .add(&NewMergeRequestDependency {
-                    user_id: user.inner() as _,
+                    user_id: user.id.inner() as _,
                     source_project_id: source_project_id.inner() as _,
                     source_merge_request_iid: source_merge_request_iid.inner() as _,
+                    source_discussion_id: discussion.as_ref().into(),
                     dependency_project_id: dependency_project_id.inner() as _,
                     dependency_merge_request_iid: dependency_merge_request_iid.inner() as _,
                 })
+                .await?;
+
+            gitlab
+                .create_merge_request_note(
+                    source_project_id,
+                    source_merge_request_iid,
+                    &discussion,
+                    format!("@{} :+1:", user.username),
+                )
                 .await?;
         }
 

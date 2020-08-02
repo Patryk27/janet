@@ -43,6 +43,7 @@ async fn main() -> Result<()> {
         if config.database.path.contains(":memory:") {
             log::warn!("");
             log::warn!("!! STARTING WITH AN IN-MEMORY DATABASE !!");
+            log::warn!("");
             log::warn!("When you restart Janet, she'll forget everything.");
             log::warn!(
                 "To get rid of this warning, please change `database.path` to point at a file."
@@ -74,6 +75,7 @@ async fn main() -> Result<()> {
     let gitlab_webhook_handler = Arc::new(gitlab::GitLabWebhookHandler::new(
         config.bot.name,
         config.gitlab.webhook_secret,
+        gitlab.clone(),
         cpu.clone(),
     ));
 

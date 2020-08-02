@@ -1,11 +1,9 @@
-use crate::gitlab::{GitLabClient, User};
+use crate::gitlab::{GitLabClient, User, UserId};
 use anyhow::{Context, Result};
 
 impl GitLabClient {
-    pub async fn user(&self, id: impl AsRef<str>) -> Result<User> {
-        let id = id.as_ref();
-
-        log::trace!("user(); id={}", id);
+    pub async fn user(&self, id: UserId) -> Result<User> {
+        log::trace!("user(); id={}", id.inner());
 
         (try {
             let url = self
@@ -13,7 +11,7 @@ impl GitLabClient {
                 .join("api/")?
                 .join("v4/")?
                 .join("users/")?
-                .join(&id)?;
+                .join(&id.inner().to_string())?;
 
             self.client
                 .get(url)
@@ -23,6 +21,11 @@ impl GitLabClient {
                 .json()
                 .await?
         }: Result<User>)
-            .with_context(|| format!("Couldn't find user: {}", id))
+            .with_context(|| format!("Couldn't find user: {}", id.inner()))
     }
+}
+
+#[cfg(test)]
+mod tests {
+    // TODO
 }

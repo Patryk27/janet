@@ -4,7 +4,7 @@ use anyhow::{bail, Result};
 use tokio::stream::StreamExt;
 
 use crate::database::Database;
-use crate::gitlab::{GitLabClient, MergeRequestIid, ProjectId};
+use crate::gitlab::{DiscussionId, GitLabClient, MergeRequestIid, ProjectId, UserId};
 use crate::interface::{Event, EventRx};
 
 pub async fn handle_events(
@@ -38,36 +38,49 @@ async fn handle_event(db: Database, gitlab: Arc<GitLabClient>, evt: &Event) -> R
     db.logs().add(evt).await?;
 
     match evt {
-        Event::MergeRequestClosed(merge_request)
-        | Event::MergeRequestMerged(merge_request)
-        | Event::MergeRequestReopened(merge_request) => {
-            let (project_id, merge_request_iid) =
-                merge_request.resolve(&gitlab, &Default::default()).await?;
-
-            let merge_requests = db
+        Event::MergeRequestClosed {
+            project_id,
+            merge_request_iid,
+        }
+        | Event::MergeRequestMerged {
+            project_id,
+            merge_request_iid,
+        }
+        | Event::MergeRequestReopened {
+            project_id,
+            merge_request_iid,
+        } => {
+            let deps = db
                 .merge_request_dependencies()
                 .find_depending(project_id.inner() as _, merge_request_iid.inner() as _)
                 .await?;
 
-            for merge_request in merge_requests {
-                let user_id = merge_request.user_id;
+            for dep in deps {
+                let user_id = UserId::new(dep.user_id as _);
+                let project_id = ProjectId::new(dep.source_project_id as _);
+                let discussion_id = DiscussionId::new(dep.source_discussion_id);
+                let merge_request_iid = MergeRequestIid::new(dep.source_merge_request_iid as _);
 
-                let project_id = ProjectId::new(merge_request.source_project_id as _);
+                let user = gitlab.user(user_id).await?;
+                let merge_request = gitlab.merge_request(project_id, merge_request_iid).await?;
 
-                let merge_request_iid =
-                    MergeRequestIid::new(merge_request.source_merge_request_iid as _);
+                let verb = match evt {
+                    Event::MergeRequestClosed { .. } => "closed",
+                    Event::MergeRequestMerged { .. } => "merged",
+                    Event::MergeRequestReopened { .. } => "reopened",
 
-                let user = gitlab.user(&user_id.to_string()).await?;
+                    // Safety: the topmost `match` already ensures it's one of those events
+                    _ => unreachable!(),
+                };
+
+                let note = format!(
+                    "@{} related merge request {} has been {}",
+                    user.username, merge_request.web_url, verb,
+                );
 
                 gitlab
-                    .create_merge_request_note(
-                        project_id.inner().to_string(),
-                        merge_request_iid.inner().to_string(),
-                        format!("@{} yass!", user.username),
-                    )
+                    .create_merge_request_note(project_id, merge_request_iid, &discussion_id, note)
                     .await?;
-
-                // TODO delete it
             }
         }
     }
