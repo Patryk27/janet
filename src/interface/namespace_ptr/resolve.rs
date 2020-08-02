@@ -4,12 +4,12 @@ use anyhow::*;
 
 impl NamespacePtr {
     pub async fn resolve(&self, gitlab: &GitLabClient) -> Result<NamespaceId> {
-        log::debug!("Resolving namespace ptr: {:?}", self);
+        tracing::debug!("Resolving namespace ptr: {:?}", self);
 
         (try {
             match self {
                 Self::Id(id) => *id,
-                Self::Name(name) => gitlab.namespace(name).await?.id,
+                Self::Name(name) => gitlab.namespace(name.as_ref().into()).await?.id,
             }
         }: Result<_>)
             .with_context(|| format!("Couldn't resolve namespace ptr: {:?}", self))

@@ -28,8 +28,8 @@ async fn handle(
             let body = String::from_utf8(body.to_vec())
                 .unwrap_or_else(|_| String::from("(not a valid UTF-8 string)"));
 
-            log::warn!("Unknown event: {}", body);
-            log::warn!("... serde said: {}", error);
+            tracing::warn!("Unknown event: {}", body);
+            tracing::warn!("... serde said: {}", error);
         }
     }
 

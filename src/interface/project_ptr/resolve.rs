@@ -4,7 +4,7 @@ use anyhow::*;
 
 impl ProjectPtr {
     pub async fn resolve(&self, gitlab: &GitLabClient, ctxt: &PtrContext) -> Result<ProjectId> {
-        log::debug!("Resolving project ptr: {:?}", self);
+        tracing::debug!("Resolving project ptr: {:?}", self);
 
         (try {
             match self {

@@ -6,13 +6,13 @@ const MIGRATIONS: &[&str] = &[include_str!("./migrations/01.sql")];
 pub async fn run(conn: &mut SqliteConnection) -> Result<()> {
     initialize(conn).await?;
 
-    log::debug!("Checking database's version");
+    tracing::debug!("Checking database's version");
 
     if let Some(version) = current_version(conn).await? {
-        log::debug!("... {}", version);
+        tracing::debug!("... {}", version);
         migrate(conn, version).await?;
     } else {
-        log::debug!("... none; this is a fresh start");
+        tracing::debug!("... none; this is a fresh start");
         migrate(conn, 0).await?;
     }
 
@@ -41,7 +41,7 @@ async fn migrate(conn: &mut SqliteConnection, start_from_migration: usize) -> Re
     for (migration_id, migration) in MIGRATIONS.iter().enumerate().skip(start_from_migration) {
         let migration_id = migration_id + 1;
 
-        log::info!(
+        tracing::info!(
             "Migrating database from version {} to {}",
             migration_id - 1,
             migration_id,

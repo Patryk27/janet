@@ -8,22 +8,15 @@ struct Request {
 }
 
 impl GitLabClient {
+    #[tracing::instrument(skip(self))]
     pub async fn create_merge_request_note(
         &self,
         project: ProjectId,
         merge_request: MergeRequestIid,
         discussion: &DiscussionId,
-        note: impl AsRef<str>,
+        note: String,
     ) -> Result<()> {
-        let note = note.as_ref();
-
-        log::trace!(
-            "create_merge_request_note(); project={}, merge_request={}, discussion={}, note={}",
-            project.inner(),
-            merge_request.inner(),
-            discussion.as_ref(),
-            note,
-        );
+        tracing::debug!("Sending request");
 
         (try {
             let url = self
@@ -38,7 +31,7 @@ impl GitLabClient {
                 .join(&format!("{}/", discussion.as_ref()))?
                 .join("notes")?;
 
-            let request = Request { body: note.into() };
+            let request = Request { body: note };
 
             self.client
                 .post(url)

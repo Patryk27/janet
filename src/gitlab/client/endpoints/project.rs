@@ -2,10 +2,9 @@ use crate::gitlab::{GitLabClient, Project};
 use anyhow::{Context, Result};
 
 impl GitLabClient {
-    pub async fn project(&self, id: impl AsRef<str>) -> Result<Project> {
-        let id = id.as_ref();
-
-        log::trace!("project(); id={}", id);
+    #[tracing::instrument(skip(self))]
+    pub async fn project(&self, id: String) -> Result<Project> {
+        tracing::debug!("Sending request");
 
         (try {
             let id = id.replace("/", "%2f");

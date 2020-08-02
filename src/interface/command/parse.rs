@@ -12,7 +12,7 @@ impl Command {
         merge_request: MergeRequestPtr,
         cmd: &str,
     ) -> ParseResult<Self> {
-        log::debug!(
+        tracing::debug!(
             "parse(); cmd={}, user={}, discussion={}, merge_request={:?}",
             cmd,
             user.inner(),

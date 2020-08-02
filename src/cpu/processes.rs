@@ -24,7 +24,7 @@ pub fn launch(db: Database, gitlab: Arc<GitLabClient>, cmds: CommandRx, evts: Ev
     let track_merge_request_dependencies =
         task::spawn(track_merge_request_dependencies(db.clone()));
 
-    let track_reminders = task::spawn(track_reminders(db.clone()));
+    let track_reminders = task::spawn(track_reminders(db));
 
     task::spawn(async move {
         try_join!(
@@ -49,8 +49,8 @@ pub fn launch(db: Database, gitlab: Arc<GitLabClient>, cmds: CommandRx, evts: Ev
 // {
 //     loop {
 //         if let Err(err) = start_proc(proc_ctxt.clone()).await {
-//             log::error!("Process `{}` died: {}", proc_name, err);
-//             log::error!("... restarting it");
+//             tracing::error!("Process `{}` died: {}", proc_name, err);
+//             tracing::error!("... restarting it");
 //
 //             delay_for(Duration::from_secs(1)).await;
 //         }

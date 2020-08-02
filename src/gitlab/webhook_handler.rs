@@ -34,8 +34,9 @@ impl GitLabWebhookHandler {
         }
     }
 
+    #[tracing::instrument(skip(self))]
     pub async fn handle(&self, event: WebhookEvent) {
-        log::debug!("Handling event: {:?}", event);
+        tracing::debug!("Handling webhook event");
 
         match event {
             WebhookEvent::MergeRequest {
@@ -86,6 +87,7 @@ impl GitLabWebhookHandler {
         }
     }
 
+    #[tracing::instrument(skip(self))]
     async fn handle_note(
         &self,
         project: WebhookProject,
@@ -116,7 +118,7 @@ impl GitLabWebhookHandler {
             }
 
             Err(err) => {
-                log::warn!(
+                tracing::warn!(
                     "Couldn't parse command `{}`; the underlying error was: {}",
                     cmd,
                     err

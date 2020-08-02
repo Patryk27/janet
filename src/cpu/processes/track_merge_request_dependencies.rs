@@ -1,3 +1,5 @@
+//! TODO
+
 use crate::database::Database;
 use anyhow::Result;
 use chrono::Utc;
@@ -10,13 +12,12 @@ pub async fn track_merge_request_dependencies(db: Database) -> Result<()> {
         let checked_at = Utc::now() - chrono::Duration::minutes(30);
 
         for dep in merge_request_deps.find_stale(checked_at).await? {
-            // TODO
-
-            log::trace!("Checking stale merge request dependency: {:?}", dep);
-
-            db.merge_request_dependencies()
-                .touch_checked_at(dep.id)
-                .await?;
+            // tracing::trace!({ dep = ?dep }, "Checking stale merge request
+            // dependency");
+            //
+            // db.merge_request_dependencies()
+            //     .touch_checked_at(dep.id)
+            //     .await?;
         }
 
         delay_for(Duration::from_secs(5)).await;

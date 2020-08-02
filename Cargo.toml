@@ -9,10 +9,6 @@ autotests = false
 anyhow = "1.0"
 bytes = "0.5"
 chrono = { version = "0.4", features = ["serde"] }
-colored = "2.0"
-ctrlc = "3.1"
-fern = { version = "0.6", features = ["colored"] }
-log = "0.4"
 nom = "6.0.0-alpha1"
 reqwest = { version = "0.10", features = ["json"] }
 serde = { version = "1.0", features = ["derive"] }
@@ -21,6 +17,9 @@ sqlx = { version = "0.4.0-beta.1", default-features = false, features = ["chrono
 thiserror = "1.0"
 tokio = { version = "0.2", features = ["full"] }
 toml = "0.5"
+tracing = "0.1"
+tracing-futures = "0.2"
+tracing-subscriber = "0.2"
 url = { version = "2.1", features = ["serde"] }
 uuid = { version = "0.8", features = ["serde", "v4"] }
 warp = "0.2"

@@ -12,29 +12,32 @@ pub async fn handle_commands(
     mut cmds: CommandRx,
 ) -> Result<()> {
     while let Some(cmd) = cmds.next().await {
-        log::debug!("Handling command: {:?}", cmd);
-
         let db = db.clone();
         let gitlab = gitlab.clone();
 
-        task::spawn(async move {
-            match handle_command(db, gitlab, &cmd).await {
-                Ok(_) => {
-                    log::debug!("Handled command: {:?}", cmd);
-                }
-
-                Err(err) => {
-                    log::error!("Couldn't handle command {:?}: {:?}", cmd, err);
-                }
-            }
-        });
+        task::spawn(handle_command(db, gitlab, cmd));
     }
 
     bail!("Lost connection to the `commands` stream")
 }
 
-async fn handle_command(db: Database, gitlab: Arc<GitLabClient>, cmd: &Command) -> Result<()> {
-    db.logs().add(cmd).await?;
+#[tracing::instrument(skip(db, gitlab))]
+async fn handle_command(db: Database, gitlab: Arc<GitLabClient>, cmd: Command) {
+    tracing::debug!("Handling command");
+
+    match handle_command_inner(db, gitlab, cmd).await {
+        Ok(_) => {
+            tracing::info!("Command handled");
+        }
+
+        Err(err) => {
+            tracing::error!({ err = ?err }, "Failed to handle command");
+        }
+    }
+}
+
+async fn handle_command_inner(db: Database, gitlab: Arc<GitLabClient>, cmd: Command) -> Result<()> {
+    db.logs().add((&cmd).into()).await?;
 
     match cmd {
         Command::AddMergeRequestDependency {
@@ -49,7 +52,7 @@ async fn handle_command(db: Database, gitlab: Arc<GitLabClient>, cmd: &Command) 
             source,
             dependency,
         } => {
-            let user = gitlab.user(*user).await?;
+            let user = gitlab.user(user).await?;
 
             let (source_project_id, source_merge_request_iid) =
                 source.resolve(&gitlab, &Default::default()).await?;
@@ -66,25 +69,40 @@ async fn handle_command(db: Database, gitlab: Arc<GitLabClient>, cmd: &Command) 
             let (dependency_project_id, dependency_merge_request_iid) =
                 dependency.resolve(&gitlab, &ctxt).await?;
 
-            db.merge_request_dependencies()
-                .add(&NewMergeRequestDependency {
-                    user_id: user.id.inner() as _,
-                    source_project_id: source_project_id.inner() as _,
-                    source_merge_request_iid: source_merge_request_iid.inner() as _,
-                    source_discussion_id: discussion.as_ref().into(),
-                    dependency_project_id: dependency_project_id.inner() as _,
-                    dependency_merge_request_iid: dependency_merge_request_iid.inner() as _,
-                })
-                .await?;
+            if gitlab
+                .merge_request(dependency_project_id, dependency_merge_request_iid)
+                .await
+                .is_ok()
+            {
+                db.merge_request_dependencies()
+                    .add(&NewMergeRequestDependency {
+                        user_id: user.id.inner() as _,
+                        source_project_id: source_project_id.inner() as _,
+                        source_merge_request_iid: source_merge_request_iid.inner() as _,
+                        source_discussion_id: discussion.as_ref().into(),
+                        dependency_project_id: dependency_project_id.inner() as _,
+                        dependency_merge_request_iid: dependency_merge_request_iid.inner() as _,
+                    })
+                    .await?;
 
-            gitlab
-                .create_merge_request_note(
-                    source_project_id,
-                    source_merge_request_iid,
-                    &discussion,
-                    format!("@{} :+1:", user.username),
-                )
-                .await?;
+                gitlab
+                    .create_merge_request_note(
+                        source_project_id,
+                        source_merge_request_iid,
+                        &discussion,
+                        format!("@{} :+1:", user.username),
+                    )
+                    .await?;
+            } else {
+                gitlab
+                    .create_merge_request_note(
+                        source_project_id,
+                        source_merge_request_iid,
+                        &discussion,
+                        format!("@{} sorry, I couldn't find this merge request - could you please ensure it exists and re-create / delete your comment?", user.username),
+                    )
+                    .await?;
+            }
         }
 
         _ => (),

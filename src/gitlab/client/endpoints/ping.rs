@@ -2,8 +2,9 @@ use crate::gitlab::GitLabClient;
 use anyhow::{Context, Result};
 
 impl GitLabClient {
+    #[tracing::instrument(skip(self))]
     pub async fn ping(&self) -> Result<()> {
-        log::trace!("ping()");
+        tracing::debug!("Sending request");
 
         (try {
             self.client

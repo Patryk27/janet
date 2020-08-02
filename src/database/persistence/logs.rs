@@ -17,10 +17,9 @@ impl LogsRepository {
         Self { db }
     }
 
-    pub async fn add(&self, log: impl Into<NewLog>) -> Result<()> {
-        let log = log.into();
-
-        ::log::trace!("add(); log={:?}", log);
+    #[tracing::instrument(skip(self))]
+    pub async fn add(&self, log: NewLog) -> Result<()> {
+        tracing::debug!("Accessing database");
 
         let mut conn = self.db.conn.lock().await;
 
@@ -34,7 +33,10 @@ impl LogsRepository {
         Ok(())
     }
 
+    #[tracing::instrument(skip(self))]
     pub async fn find_all(&self) -> Result<Vec<Log>> {
+        tracing::debug!("Accessing database");
+
         todo!()
     }
 }

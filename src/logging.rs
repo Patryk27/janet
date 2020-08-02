@@ -1,41 +1,19 @@
 use anyhow::Result;
-use colored::Colorize;
-use fern::colors::{Color, ColoredLevelConfig};
-use std::{sync, thread};
+use tracing::Level;
+use tracing_subscriber::filter::LevelFilter;
+use tracing_subscriber::EnvFilter;
 
 pub fn init() -> Result<()> {
-    let (tx, rx) = sync::mpsc::channel();
+    let subscriber = tracing_subscriber::fmt()
+        .with_max_level(Level::TRACE)
+        .json()
+        .with_env_filter(
+            EnvFilter::default()
+                .add_directive("hyper=error".parse()?)
+                .add_directive("warp=error".parse()?)
+                .add_directive(LevelFilter::TRACE.into()),
+        )
+        .finish();
 
-    thread::spawn(move || {
-        while let Ok(msg) = rx.recv() {
-            print!("{}", msg);
-        }
-    });
-
-    let colors = ColoredLevelConfig::new()
-        .debug(Color::Magenta)
-        .info(Color::Blue);
-
-    fern::Dispatch::new()
-        .format(move |out, message, record| {
-            out.finish(format_args!(
-                "{} {} {} {}",
-                chrono::Local::now().format("[%Y-%m-%d %H:%M:%S]"),
-                colors.color(record.level()),
-                record.target().dimmed(),
-                message,
-            ))
-        })
-        .level(log::LevelFilter::Trace)
-        .level_for("", log::LevelFilter::Error)
-        .level_for("hyper", log::LevelFilter::Error)
-        .level_for("mio", log::LevelFilter::Error)
-        .level_for("reqwest", log::LevelFilter::Error)
-        .level_for("sqlx", log::LevelFilter::Error)
-        .level_for("tracing", log::LevelFilter::Error)
-        .level_for("want", log::LevelFilter::Error)
-        .level_for("warp", log::LevelFilter::Error)
-        .chain(tx)
-        .apply()
-        .map_err(Into::into)
+    tracing::subscriber::set_global_default(subscriber).map_err(Into::into)
 }

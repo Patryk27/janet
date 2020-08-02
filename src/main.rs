@@ -26,11 +26,11 @@ async fn main() -> Result<()> {
     logging::init().context("Couldn't initialize logger")?;
 
     for line in LOGO.lines().skip(1) {
-        log::info!("{}", line);
+        tracing::info!("{}", line);
     }
 
     let config = {
-        log::info!("Loading configuration");
+        tracing::info!("Loading configuration");
 
         config::Config::load()
             .await
@@ -38,17 +38,17 @@ async fn main() -> Result<()> {
     };
 
     let db = {
-        log::info!("Initializing database (path = {})", config.database.path);
+        tracing::info!("Initializing database (path = {})", config.database.path);
 
         if config.database.path.contains(":memory:") {
-            log::warn!("");
-            log::warn!("!! STARTING WITH AN IN-MEMORY DATABASE !!");
-            log::warn!("");
-            log::warn!("When you restart Janet, she'll forget everything.");
-            log::warn!(
+            tracing::warn!("");
+            tracing::warn!("!! STARTING WITH AN IN-MEMORY DATABASE !!");
+            tracing::warn!("");
+            tracing::warn!("When you restart Janet, she'll forget everything.");
+            tracing::warn!(
                 "To get rid of this warning, please change `database.path` to point at a file."
             );
-            log::warn!("");
+            tracing::warn!("");
         }
 
         database::Database::new(config.database)
@@ -57,7 +57,7 @@ async fn main() -> Result<()> {
     };
 
     let gitlab = {
-        log::info!("Initializing GitLab client");
+        tracing::info!("Initializing GitLab client");
 
         Arc::new(
             gitlab::GitLabClient::init(config.gitlab.client)
@@ -67,7 +67,7 @@ async fn main() -> Result<()> {
     };
 
     let cpu = {
-        log::info!("Initializing CPU");
+        tracing::info!("Initializing CPU");
 
         Arc::new(cpu::Cpu::init(db, gitlab.clone()))
     };
@@ -81,7 +81,7 @@ async fn main() -> Result<()> {
 
     http::init(config.http, gitlab_webhook_handler).await;
 
-    log::info!("Shutting down");
+    tracing::info!("Shutting down");
 
     Ok(())
 }

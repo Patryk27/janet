@@ -8,11 +8,11 @@ mod config;
 mod endpoints;
 
 pub async fn init(config: HttpConfig, gitlab_webhook_handler: Arc<GitLabWebhookHandler>) {
-    log::trace!("init()");
+    tracing::trace!("init()");
 
     let router = endpoints::health().or(endpoints::handle_gitlab_webhook(gitlab_webhook_handler));
 
-    log::info!("Starting server at: {}", config.addr);
+    tracing::info!("Starting server at: {}", config.addr);
 
     warp::serve(router).run(config.addr).await;
 }

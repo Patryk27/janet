@@ -8,7 +8,7 @@ impl MergeRequestPtr {
         gitlab: &GitLabClient,
         ctxt: &PtrContext,
     ) -> Result<(ProjectId, MergeRequestIid)> {
-        log::debug!("Resolving merge request ptr: {:?}", self);
+        tracing::debug!("Resolving merge request ptr: {:?}", self);
 
         (try {
             match self {

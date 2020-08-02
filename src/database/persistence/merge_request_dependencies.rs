@@ -18,8 +18,9 @@ impl MergeRequestDependenciesRepository {
         Self { db }
     }
 
+    #[tracing::instrument(skip(self))]
     pub async fn add(&self, dep: &NewMergeRequestDependency) -> Result<Id<MergeRequestDependency>> {
-        log::trace!("add(); dep={:?}", dep);
+        tracing::debug!("Accessing database");
 
         let mut conn = self.db.conn.lock().await;
         let id = Id::new();
@@ -52,8 +53,9 @@ impl MergeRequestDependenciesRepository {
         Ok(id)
     }
 
+    #[tracing::instrument(skip(self))]
     pub async fn get(&self, id: Id<MergeRequestDependency>) -> Result<MergeRequestDependency> {
-        log::trace!("get(); id={}", id);
+        tracing::debug!("Accessing database");
 
         let mut conn = self.db.conn.lock().await;
 
@@ -64,22 +66,22 @@ impl MergeRequestDependenciesRepository {
             .with_context(|| format!("Couldn't load merge request dependency: {}", id))
     }
 
+    #[tracing::instrument(skip(self))]
     pub async fn touch_checked_at(&self, id: Id<MergeRequestDependency>) -> Result<()> {
-        log::trace!("touch_checked_at(); id={}", id);
+        tracing::debug!("Accessing database");
 
-        todo!()
+        // TODO
+
+        Ok(())
     }
 
+    #[tracing::instrument(skip(self))]
     pub async fn find_depending(
         &self,
         dep_project_id: i64,
         dep_merge_request_iid: i64,
     ) -> Result<Vec<MergeRequestDependency>> {
-        log::trace!(
-            "find_depending(); dep_project_id={}, dep_merge_request_iid={}",
-            dep_project_id,
-            dep_merge_request_iid
-        );
+        tracing::debug!("Accessing database");
 
         let mut conn = self.db.conn.lock().await;
 
@@ -106,11 +108,12 @@ impl MergeRequestDependenciesRepository {
         .context("Couldn't find depending merge request dependencies")
     }
 
+    #[tracing::instrument(skip(self))]
     pub async fn find_stale(
         &self,
         checked_at: DateTime<Utc>,
     ) -> Result<Vec<MergeRequestDependency>> {
-        log::trace!("find_stale(); checked_at={:?}", checked_at);
+        tracing::debug!("Accessing database");
 
         let mut conn = self.db.conn.lock().await;
 

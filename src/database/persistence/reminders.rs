@@ -18,8 +18,9 @@ impl RemindersRepository {
         Self { db }
     }
 
+    #[tracing::instrument(skip(self))]
     pub async fn add(&self, reminder: &NewReminder) -> Result<Id<Reminder>> {
-        log::trace!("add(); reminder={:?}", reminder);
+        tracing::debug!("Accessing database");
 
         let mut conn = self.db.conn.lock().await;
         let id = Id::new();
@@ -47,8 +48,9 @@ impl RemindersRepository {
         Ok(id)
     }
 
+    #[tracing::instrument(skip(self))]
     pub async fn remove(&self, id: Id<Reminder>) -> Result<()> {
-        log::trace!("remove(); id={}", id);
+        tracing::debug!("Accessing database");
 
         let mut conn = self.db.conn.lock().await;
 
@@ -61,8 +63,9 @@ impl RemindersRepository {
         Ok(())
     }
 
+    #[tracing::instrument(skip(self))]
     pub async fn find_overdue(&self, now: DateTime<Utc>) -> Result<Vec<Reminder>> {
-        log::trace!("find_overdue(); now={:?}", now);
+        tracing::debug!("Accessing database");
 
         let mut conn = self.db.conn.lock().await;
 

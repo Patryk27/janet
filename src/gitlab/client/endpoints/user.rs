@@ -2,8 +2,9 @@ use crate::gitlab::{GitLabClient, User, UserId};
 use anyhow::{Context, Result};
 
 impl GitLabClient {
+    #[tracing::instrument(skip(self))]
     pub async fn user(&self, id: UserId) -> Result<User> {
-        log::trace!("user(); id={}", id.inner());
+        tracing::debug!("Sending request");
 
         (try {
             let url = self

@@ -2,10 +2,9 @@ use crate::gitlab::{GitLabClient, Namespace};
 use anyhow::{Context, Result};
 
 impl GitLabClient {
-    pub async fn namespace(&self, id: impl AsRef<str>) -> Result<Namespace> {
-        let id = id.as_ref();
-
-        log::trace!("namespace(); id={}", id);
+    #[tracing::instrument(skip(self))]
+    pub async fn namespace(&self, id: String) -> Result<Namespace> {
+        tracing::debug!("Sending request");
 
         (try {
             let id = id.replace("/", "%2f");
