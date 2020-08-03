@@ -10,7 +10,7 @@ impl NamespacePtr {
         (try {
             match self {
                 Self::Id(id) => *id,
-                Self::Name(name) => gitlab.namespace(name.as_ref().into()).await?.id,
+                Self::Name(name) => gitlab.namespace(name.as_ref()).await?.id,
             }
         }: Result<_>)
             .with_context(|| format!("Couldn't resolve namespace ptr: {:?}", self))
