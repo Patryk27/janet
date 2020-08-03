@@ -40,13 +40,8 @@ async fn handle_command_inner(db: Database, gitlab: Arc<GitLabClient>, cmd: Comm
     db.logs().add((&cmd).into()).await?;
 
     match cmd {
-        Command::AddMergeRequestDependency {
-            user,
-            discussion,
-            source,
-            dependency,
-        }
-        | Command::RemoveMergeRequestDependency {
+        Command::MergeRequestDependency {
+            action,
             user,
             discussion,
             source,
@@ -69,21 +64,58 @@ async fn handle_command_inner(db: Database, gitlab: Arc<GitLabClient>, cmd: Comm
             let (dependency_project_id, dependency_merge_request_iid) =
                 dependency.resolve(&gitlab, &ctxt).await?;
 
-            if gitlab
-                .merge_request(dependency_project_id, dependency_merge_request_iid)
-                .await
-                .is_ok()
-            {
-                db.merge_request_dependencies()
-                    .add(&NewMergeRequestDependency {
-                        user_id: user.id.inner() as _,
-                        source_project_id: source_project_id.inner() as _,
-                        source_merge_request_iid: source_merge_request_iid.inner() as _,
-                        source_discussion_id: discussion.as_ref().into(),
-                        dependency_project_id: dependency_project_id.inner() as _,
-                        dependency_merge_request_iid: dependency_merge_request_iid.inner() as _,
-                    })
-                    .await?;
+            let dep = db
+                .merge_request_dependencies()
+                .find_by_source(
+                    user.id.inner() as _,
+                    source_project_id.inner() as _,
+                    source_merge_request_iid.inner() as _,
+                    discussion.as_ref(),
+                )
+                .await?;
+
+            if action.is_add() {
+                if gitlab
+                    .merge_request(dependency_project_id, dependency_merge_request_iid)
+                    .await
+                    .is_ok()
+                {
+                    if dep.is_none() {
+                        db.merge_request_dependencies()
+                            .add(&NewMergeRequestDependency {
+                                user_id: user.id.inner() as _,
+                                source_project_id: source_project_id.inner() as _,
+                                source_merge_request_iid: source_merge_request_iid.inner() as _,
+                                source_discussion_id: discussion.as_ref().into(),
+                                dependency_project_id: dependency_project_id.inner() as _,
+                                dependency_merge_request_iid: dependency_merge_request_iid.inner()
+                                    as _,
+                            })
+                            .await?;
+                    }
+
+                    gitlab
+                        .create_merge_request_note(
+                            source_project_id,
+                            source_merge_request_iid,
+                            &discussion,
+                            format!("@{} :+1:", user.username),
+                        )
+                        .await?;
+                } else {
+                    gitlab
+                        .create_merge_request_note(
+                            source_project_id,
+                            source_merge_request_iid,
+                            &discussion,
+                            format!("@{} sorry, I couldn't find this merge request - could you please ensure it exists and re-create / delete your comment?", user.username),
+                        )
+                        .await?;
+                }
+            } else {
+                if let Some(dep) = dep {
+                    db.merge_request_dependencies().remove(dep.id).await?;
+                }
 
                 gitlab
                     .create_merge_request_note(
@@ -91,15 +123,6 @@ async fn handle_command_inner(db: Database, gitlab: Arc<GitLabClient>, cmd: Comm
                         source_merge_request_iid,
                         &discussion,
                         format!("@{} :+1:", user.username),
-                    )
-                    .await?;
-            } else {
-                gitlab
-                    .create_merge_request_note(
-                        source_project_id,
-                        source_merge_request_iid,
-                        &discussion,
-                        format!("@{} sorry, I couldn't find this merge request - could you please ensure it exists and re-create / delete your comment?", user.username),
                     )
                     .await?;
             }

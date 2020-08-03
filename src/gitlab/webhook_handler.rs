@@ -112,7 +112,7 @@ impl GitLabWebhookHandler {
             merge_request: merge_request.iid,
         };
 
-        match Command::parse(user, discussion.clone(), merge_request_ptr, cmd) {
+        match Command::parse(user, merge_request_ptr, discussion.clone(), cmd) {
             Ok(cmd) => {
                 self.cpu.handle_command(cmd);
             }

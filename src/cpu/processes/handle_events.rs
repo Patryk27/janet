@@ -55,7 +55,7 @@ async fn handle_event_inner(db: Database, gitlab: Arc<GitLabClient>, evt: &Event
         } => {
             let deps = db
                 .merge_request_dependencies()
-                .find_depending(project_id.inner() as _, merge_request_iid.inner() as _)
+                .find_by_dependency(project_id.inner() as _, merge_request_iid.inner() as _)
                 .await?;
 
             for dep in deps {
@@ -63,12 +63,24 @@ async fn handle_event_inner(db: Database, gitlab: Arc<GitLabClient>, evt: &Event
 
                 let result: Result<()> = try {
                     let user_id = UserId::new(dep.user_id as _);
-                    let project_id = ProjectId::new(dep.source_project_id as _);
-                    let discussion_id = DiscussionId::new(dep.source_discussion_id.clone());
-                    let merge_request_iid = MergeRequestIid::new(dep.source_merge_request_iid as _);
+
+                    let source_project_id = ProjectId::new(dep.source_project_id as _);
+
+                    let source_discussion_id = DiscussionId::new(dep.source_discussion_id.clone());
+
+                    let source_merge_request_iid =
+                        MergeRequestIid::new(dep.source_merge_request_iid as _);
+
+                    let dependency_project_id = ProjectId::new(dep.dependency_project_id as _);
+
+                    let dependency_merge_request_iid =
+                        MergeRequestIid::new(dep.dependency_merge_request_iid as _);
 
                     let user = gitlab.user(user_id).await?;
-                    let merge_request = gitlab.merge_request(project_id, merge_request_iid).await?;
+
+                    let merge_request = gitlab
+                        .merge_request(dependency_project_id, dependency_merge_request_iid)
+                        .await?;
 
                     let verb = match evt {
                         Event::MergeRequestClosed { .. } => "closed",
@@ -86,9 +98,9 @@ async fn handle_event_inner(db: Database, gitlab: Arc<GitLabClient>, evt: &Event
 
                     gitlab
                         .create_merge_request_note(
-                            project_id,
-                            merge_request_iid,
-                            &discussion_id,
+                            source_project_id,
+                            source_merge_request_iid,
+                            &source_discussion_id,
                             note,
                         )
                         .await?;

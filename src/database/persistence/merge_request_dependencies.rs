@@ -67,19 +67,61 @@ impl MergeRequestDependenciesRepository {
     }
 
     #[tracing::instrument(skip(self))]
-    pub async fn touch_checked_at(&self, id: Id<MergeRequestDependency>) -> Result<()> {
+    pub async fn remove(&self, id: Id<MergeRequestDependency>) -> Result<()> {
         tracing::debug!("Accessing database");
 
-        // TODO
+        let mut conn = self.db.conn.lock().await;
+
+        sqlx::query("DELETE FROM merge_request_dependencies WHERE id = ?")
+            .bind(id)
+            .execute(conn.deref_mut())
+            .await
+            .with_context(|| format!("Couldn't remove merge request dependency: {}", id))?;
 
         Ok(())
     }
 
     #[tracing::instrument(skip(self))]
-    pub async fn find_depending(
+    pub async fn find_by_source(
         &self,
-        dep_project_id: i64,
-        dep_merge_request_iid: i64,
+        user_id: i64,
+        source_project_id: i64,
+        source_merge_request_iid: i64,
+        source_discussion_id: &str,
+    ) -> Result<Option<MergeRequestDependency>> {
+        tracing::debug!("Accessing database");
+
+        let mut conn = self.db.conn.lock().await;
+
+        sqlx::query_as(
+            "
+            SELECT
+                *
+                
+            FROM
+                merge_request_dependencies
+                
+            WHERE
+                user_id = ? AND
+                source_project_id = ? AND
+                source_merge_request_iid = ? AND
+                source_discussion_id = ?
+            ",
+        )
+        .bind(user_id)
+        .bind(source_project_id)
+        .bind(source_merge_request_iid)
+        .bind(source_discussion_id)
+        .fetch_optional(conn.deref_mut())
+        .await
+        .context("Couldn't find merge request dependency")
+    }
+
+    #[tracing::instrument(skip(self))]
+    pub async fn find_by_dependency(
+        &self,
+        dependency_project_id: i64,
+        dependency_merge_request_id: i64,
     ) -> Result<Vec<MergeRequestDependency>> {
         tracing::debug!("Accessing database");
 
@@ -101,8 +143,8 @@ impl MergeRequestDependenciesRepository {
                 checked_at ASC
             ",
         )
-        .bind(dep_project_id)
-        .bind(dep_merge_request_iid)
+        .bind(dependency_project_id)
+        .bind(dependency_merge_request_id)
         .fetch_all(conn.deref_mut())
         .await
         .context("Couldn't find depending merge request dependencies")
@@ -175,7 +217,7 @@ mod tests {
         }
     }
 
-    mod find_depending {
+    mod find_by_dependency {
         use super::*;
 
         #[tokio::test(threaded_scheduler)]
@@ -225,7 +267,7 @@ mod tests {
             {
                 let deps = db
                     .merge_request_dependencies()
-                    .find_depending(120, 3)
+                    .find_by_dependency(120, 3)
                     .await
                     .unwrap();
 
@@ -237,7 +279,7 @@ mod tests {
             {
                 let deps = db
                     .merge_request_dependencies()
-                    .find_depending(130, 1)
+                    .find_by_dependency(130, 1)
                     .await
                     .unwrap();
 
@@ -248,7 +290,7 @@ mod tests {
             {
                 let deps = db
                     .merge_request_dependencies()
-                    .find_depending(130, 2)
+                    .find_by_dependency(130, 2)
                     .await
                     .unwrap();
 

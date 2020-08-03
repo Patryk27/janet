@@ -24,9 +24,10 @@ cwd = os.path.dirname(os.path.realpath(__file__))
 def test(gitlab: GitLab, janet: Janet):
     gitlab.state.add_namespace(id=1, name="test", full_path="test")
     gitlab.state.add_project(id=100, namespace_id=1)
-    gitlab.state.add_merge_request(project_id=100, iid=1, web_url="https://somewhere")
+    gitlab.state.add_merge_request(project_id=100, iid=1, web_url="https://first-merge-request")
+    gitlab.state.add_merge_request(project_id=100, iid=2, web_url="https://second-merge-request")
 
-    for (author_id, author_username) in [(20, "foo"), (21, "bar"), (25, "zar")]:
+    for (author_id, author_username) in [(20, "foo"), (21, "bar")]:
         gitlab.state.add_user(id=author_id, username=author_username)
 
         gitlab.expect.merge_request_note_created(
@@ -52,13 +53,15 @@ def test(gitlab: GitLab, janet: Janet):
             }
         })
 
-    for (author_id, author_username) in [(20, "foo"), (21, "bar"), (25, "zar")]:
+    for (author_id, author_username) in [(20, "foo"), (21, "bar")]:
         gitlab.expect.merge_request_note_created(
             project_id=100,
             merge_request_iid=1,
             discussion_id=f"abcd{author_id}",
-            note=f"@{author_username} related merge request https://somewhere has been closed",
+            note=f"@{author_username} related merge request https://second-merge-request has been closed",
         )
+
+    time.sleep(2)
 
     janet.spoof_gitlab_webhook_event({
         "event_type": "merge_request",
@@ -72,7 +75,7 @@ def test(gitlab: GitLab, janet: Janet):
         }
     })
 
-    time.sleep(5)
+    time.sleep(2)
 
 
 for case in TestCase.all():

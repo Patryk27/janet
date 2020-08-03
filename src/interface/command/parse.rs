@@ -1,26 +1,30 @@
 use crate::gitlab::{DiscussionId, UserId};
-use crate::interface::{Command, DateTimeSpec, MergeRequestPtr, Parse, ParseError, ParseResult};
+use crate::interface::{
+    Command,
+    CommandAction,
+    DateTimeSpec,
+    MergeRequestPtr,
+    Parse,
+    ParseError,
+    ParseResult,
+};
 use nom::branch::alt;
 use nom::bytes::complete::tag_no_case;
-use nom::combinator::all_consuming;
+use nom::character::complete::char;
+use nom::combinator::{all_consuming, value};
 use nom::IResult;
 
 impl Command {
+    #[tracing::instrument]
     pub fn parse(
         user: UserId,
-        discussion: DiscussionId,
         merge_request: MergeRequestPtr,
+        discussion: DiscussionId,
         cmd: &str,
     ) -> ParseResult<Self> {
-        tracing::debug!(
-            "parse(); cmd={}, user={}, discussion={}, merge_request={:?}",
-            cmd,
-            user.inner(),
-            discussion.as_ref(),
-            merge_request,
-        );
+        tracing::debug!("Parsing command");
 
-        parse(user, discussion, merge_request, cmd)
+        parse(user, merge_request, discussion, cmd)
             .map(|(_, cmd)| cmd)
             .map_err(|_| ParseError::UnknownCommand)
     }
@@ -28,72 +32,62 @@ impl Command {
 
 pub fn parse(
     user: UserId,
-    discussion: DiscussionId,
     merge_request: MergeRequestPtr,
+    discussion: DiscussionId,
     cmd: &str,
 ) -> IResult<&str, Command> {
     all_consuming(alt((
-        |i| add_merge_request_dependency(i, &user, &discussion, &merge_request),
-        |i| remove_merge_request_dependency(i, &user, &discussion, &merge_request),
-        |i| add_reminder(i, &user, &discussion, &merge_request),
+        |i| merge_request_dependency(i, &user, &merge_request, &discussion),
+        |i| reminder(i, &user, &merge_request, &discussion),
     )))(cmd)
 }
 
-fn add_merge_request_dependency<'a>(
+fn action(i: &str) -> IResult<&str, CommandAction> {
+    let add = value(CommandAction::Add, char('+'));
+    let remove = value(CommandAction::Remove, char('-'));
+
+    alt((add, remove))(i)
+}
+
+fn merge_request_dependency<'a>(
     i: &'a str,
     user: &UserId,
-    discussion: &DiscussionId,
     source: &MergeRequestPtr,
+    discussion: &DiscussionId,
 ) -> IResult<&'a str, Command> {
-    let (i, _) = tag_no_case("+depends on ")(i)?;
+    let (i, action) = action(i)?;
+    let (i, _) = tag_no_case("depends on ")(i)?;
     let (i, dependency) = MergeRequestPtr::parse(i)?;
 
     Ok((
         i,
-        Command::AddMergeRequestDependency {
+        Command::MergeRequestDependency {
+            action,
             user: user.to_owned(),
-            discussion: discussion.to_owned(),
             source: source.to_owned(),
+            discussion: discussion.to_owned(),
             dependency,
         },
     ))
 }
 
-fn remove_merge_request_dependency<'a>(
+fn reminder<'a>(
     i: &'a str,
     user: &UserId,
-    discussion: &DiscussionId,
-    source: &MergeRequestPtr,
-) -> IResult<&'a str, Command> {
-    let (i, _) = tag_no_case("-depends on ")(i)?;
-    let (i, dependency) = MergeRequestPtr::parse(i)?;
-
-    Ok((
-        i,
-        Command::RemoveMergeRequestDependency {
-            user: user.to_owned(),
-            discussion: discussion.to_owned(),
-            source: source.to_owned(),
-            dependency,
-        },
-    ))
-}
-
-fn add_reminder<'a>(
-    i: &'a str,
-    user: &UserId,
-    discussion: &DiscussionId,
     merge_request: &MergeRequestPtr,
+    discussion: &DiscussionId,
 ) -> IResult<&'a str, Command> {
+    let (i, action) = action(i)?;
     let (i, _) = tag_no_case("+remind me ")(i)?;
     let (i, remind_at) = DateTimeSpec::parse(i)?;
 
     Ok((
         i,
-        Command::AddReminder {
+        Command::Reminder {
+            action,
             user: user.to_owned(),
-            discussion: discussion.to_owned(),
             merge_request: merge_request.to_owned(),
+            discussion: discussion.to_owned(),
             remind_at,
         },
     ))
@@ -109,10 +103,6 @@ mod tests {
         UserId::new(1)
     }
 
-    fn discussion() -> DiscussionId {
-        DiscussionId::new("0000")
-    }
-
     fn merge_request() -> MergeRequestPtr {
         MergeRequestPtr::Iid {
             project: None,
@@ -120,25 +110,54 @@ mod tests {
         }
     }
 
-    fn assert(expected: Command, input: &str) {
-        let actual = Command::parse(user(), discussion(), merge_request(), input).unwrap();
+    fn discussion() -> DiscussionId {
+        DiscussionId::new("0000")
+    }
+
+    fn assert(expected: Command, input: impl AsRef<str>) {
+        let input = input.as_ref();
+        let actual = Command::parse(user(), merge_request(), discussion(), input).unwrap();
 
         assert_eq!(expected, actual, "Input: {}", input);
     }
 
-    mod add_merge_request_dependency {
+    mod mod_merge_request_dependency {
         use super::*;
 
         mod with_dependency {
             use super::*;
+            use test_case::test_case;
+
+            #[test_case("+", CommandAction::Add ; "add")]
+            #[test_case("-", CommandAction::Remove ; "remove")]
+            fn of_url(prefix: &str, action: CommandAction) {
+                assert(
+                    Command::MergeRequestDependency {
+                        action,
+                        user: user(),
+                        discussion: discussion(),
+                        source: merge_request(),
+                        dependency: MergeRequestPtr::Url(Url::new(
+                            "https://gitlab.com/some/project/-/merge_requests/123",
+                        )),
+                    },
+                    format!(
+                        "{}depends on https://gitlab.com/some/project/-/merge_requests/123",
+                        prefix
+                    ),
+                );
+            }
 
             mod of_iid {
                 use super::*;
+                use test_case::test_case;
 
-                #[test]
-                fn without_project() {
+                #[test_case("+", CommandAction::Add ; "add")]
+                #[test_case("-", CommandAction::Remove ; "remove")]
+                fn without_project(prefix: &str, action: CommandAction) {
                     assert(
-                        Command::AddMergeRequestDependency {
+                        Command::MergeRequestDependency {
+                            action,
                             user: user(),
                             discussion: discussion(),
                             source: merge_request(),
@@ -147,14 +166,16 @@ mod tests {
                                 merge_request: MergeRequestIid::new(123),
                             },
                         },
-                        "+depends on !123",
+                        format!("{}depends on !123", prefix),
                     );
                 }
 
-                #[test]
-                fn with_project() {
+                #[test_case("+", CommandAction::Add ; "add")]
+                #[test_case("-", CommandAction::Remove ; "remove")]
+                fn with_project(prefix: &str, action: CommandAction) {
                     assert(
-                        Command::AddMergeRequestDependency {
+                        Command::MergeRequestDependency {
+                            action,
                             user: user(),
                             discussion: discussion(),
                             source: merge_request(),
@@ -166,86 +187,9 @@ mod tests {
                                 merge_request: MergeRequestIid::new(123),
                             },
                         },
-                        "+depends on project!123",
+                        format!("{}depends on project!123", prefix),
                     );
                 }
-            }
-
-            #[test]
-            fn of_url() {
-                assert(
-                    Command::AddMergeRequestDependency {
-                        user: user(),
-                        discussion: discussion(),
-                        source: merge_request(),
-                        dependency: MergeRequestPtr::Url(Url::new(
-                            "https://gitlab.com/some/project/-/merge_requests/123",
-                        )),
-                    },
-                    "+depends on https://gitlab.com/some/project/-/merge_requests/123",
-                );
-            }
-        }
-    }
-
-    mod remove_merge_request_dependency {
-        use super::*;
-
-        mod with_dependency {
-            use super::*;
-
-            mod of_iid {
-                use super::*;
-
-                #[test]
-                fn without_project() {
-                    assert(
-                        Command::RemoveMergeRequestDependency {
-                            user: user(),
-                            discussion: discussion(),
-                            source: merge_request(),
-                            dependency: MergeRequestPtr::Iid {
-                                project: None,
-                                merge_request: MergeRequestIid::new(123),
-                            },
-                        },
-                        "-depends on !123",
-                    );
-                }
-
-                #[test]
-                fn with_project() {
-                    assert(
-                        Command::RemoveMergeRequestDependency {
-                            user: user(),
-                            discussion: discussion(),
-                            source: merge_request(),
-                            dependency: MergeRequestPtr::Iid {
-                                project: Some(ProjectPtr::Name {
-                                    namespace: None,
-                                    name: ProjectName::new("project"),
-                                }),
-                                merge_request: MergeRequestIid::new(123),
-                            },
-                        },
-                        "-depends on project!123",
-                    );
-                }
-            }
-
-            #[test]
-            fn of_url() {
-                assert(
-                    Command::RemoveMergeRequestDependency {
-                        user: user(),
-                        discussion: discussion(),
-                        source: merge_request(),
-                        dependency: MergeRequestPtr::Url(Url::new(
-                            "https://gitlab.com/some/project/-/merge_requests/123",
-                        )),
-                    },
-                    "-depends on https://gitlab.com/some/project/-/merge_requests/123",
-                );
             }
         }
     }
