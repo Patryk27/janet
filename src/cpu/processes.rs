@@ -19,7 +19,7 @@ mod track_reminders;
 pub fn launch(db: Database, gitlab: Arc<GitLabClient>, cmds: CommandRx, evts: EventRx) {
     let handle_commands = task::spawn(handle_commands(db.clone(), gitlab.clone(), cmds));
 
-    let handle_events = task::spawn(handle_events(db.clone(), gitlab.clone(), evts));
+    let handle_events = task::spawn(handle_events(db.clone(), gitlab, evts));
 
     let track_merge_request_dependencies = task::spawn(track_merge_request_deps(db.clone()));
 
