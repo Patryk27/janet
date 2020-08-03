@@ -39,7 +39,7 @@ impl GitLabClient {
                 .send()
                 .await?
                 .error_for_status()?;
-        }: Result<()>)
+        }: Result<_>)
             .context("Couldn't create merge request note")
     }
 }

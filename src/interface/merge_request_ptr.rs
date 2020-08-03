@@ -1,6 +1,7 @@
 use crate::gitlab::MergeRequestIid;
-use crate::interface::{ProjectPtr, Url};
+use crate::interface::ProjectPtr;
 use serde::Serialize;
+use url::Url;
 
 mod parse;
 mod resolve;

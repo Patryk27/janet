@@ -1,5 +1,5 @@
 use crate::gitlab::MergeRequestIid;
-use crate::interface::{MergeRequestPtr, Parse, ProjectPtr, Url};
+use crate::interface::{MergeRequestPtr, Parse, ProjectPtr};
 use nom::branch::alt;
 use nom::bytes::complete::tag;
 use nom::combinator::{map, opt};
@@ -26,7 +26,7 @@ fn id(i: &str) -> IResult<&str, MergeRequestPtr> {
 }
 
 fn url(i: &str) -> IResult<&str, MergeRequestPtr> {
-    map(Url::parse, MergeRequestPtr::Url)(i)
+    map(Parse::parse, MergeRequestPtr::Url)(i)
 }
 
 #[cfg(test)]
@@ -34,6 +34,8 @@ mod tests {
     use super::*;
     use crate::gitlab::{MergeRequestIid, NamespaceName, ProjectId, ProjectName};
     use crate::interface::{NamespacePtr, ProjectPtr};
+    use std::str::FromStr;
+    use url::Url;
 
     fn assert(expected: MergeRequestPtr, input: &str) {
         let expected = Ok(("", expected));
@@ -113,9 +115,9 @@ mod tests {
     #[test]
     fn url() {
         assert(
-            MergeRequestPtr::Url(Url::new(
-                "https://gitlab.com/some/project/-/merge_requests/123",
-            )),
+            MergeRequestPtr::Url(
+                Url::from_str("https://gitlab.com/some/project/-/merge_requests/123").unwrap(),
+            ),
             "https://gitlab.com/some/project/-/merge_requests/123",
         );
     }

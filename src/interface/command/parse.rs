@@ -78,7 +78,7 @@ fn reminder<'a>(
     discussion: &DiscussionId,
 ) -> IResult<&'a str, Command> {
     let (i, action) = action(i)?;
-    let (i, _) = tag_no_case("+remind me ")(i)?;
+    let (i, _) = tag_no_case("remind me ")(i)?;
     let (i, remind_at) = DateTimeSpec::parse(i)?;
 
     Ok((
@@ -97,7 +97,9 @@ fn reminder<'a>(
 mod tests {
     use super::*;
     use crate::gitlab::{MergeRequestIid, ProjectName};
-    use crate::interface::{ProjectPtr, Url};
+    use crate::interface::ProjectPtr;
+    use std::str::FromStr;
+    use url::Url;
 
     fn user() -> UserId {
         UserId::new(1)
@@ -137,9 +139,10 @@ mod tests {
                         user: user(),
                         discussion: discussion(),
                         source: merge_request(),
-                        dependency: MergeRequestPtr::Url(Url::new(
-                            "https://gitlab.com/some/project/-/merge_requests/123",
-                        )),
+                        dependency: MergeRequestPtr::Url(
+                            Url::from_str("https://gitlab.com/some/project/-/merge_requests/123")
+                                .unwrap(),
+                        ),
                     },
                     format!(
                         "{}depends on https://gitlab.com/some/project/-/merge_requests/123",

@@ -27,7 +27,7 @@ impl GitLabClient {
                 .error_for_status()?
                 .json()
                 .await?
-        }: Result<MergeRequest>)
+        }: Result<_>)
             .with_context(|| {
                 format!(
                     "Couldn't find merge request: project={}, merge_request={}",

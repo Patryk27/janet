@@ -1,20 +1,17 @@
-use crate::gitlab::{GitLabClient, Project};
-use anyhow::{Context, Result};
+use crate::gitlab::{GitLabClient, MergeRequest};
+use anyhow::*;
 
 impl GitLabClient {
     #[tracing::instrument(skip(self))]
-    pub async fn project(&self, id: &str) -> Result<Project> {
+    pub async fn merge_requests(&self) -> Result<Vec<MergeRequest>> {
         tracing::debug!("Sending request");
 
         (try {
-            let id = id.replace("/", "%2f");
-
             let url = self
                 .url
                 .join("api/")?
                 .join("v4/")?
-                .join("projects/")?
-                .join(&id)?;
+                .join("merge_requests?scope=all")?;
 
             self.client
                 .get(url)
@@ -24,7 +21,7 @@ impl GitLabClient {
                 .json()
                 .await?
         }: Result<_>)
-            .with_context(|| format!("Couldn't find project: {}", id))
+            .context("Couldn't find merge requests")
     }
 }
 

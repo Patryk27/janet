@@ -12,7 +12,7 @@ impl GitLabClient {
                 .send()
                 .await?
                 .error_for_status()?;
-        }: Result<()>)
+        }: Result<_>)
             .with_context(|| format!("Couldn't ping GitLab at: {}", self.url))
     }
 }

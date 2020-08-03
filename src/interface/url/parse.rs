@@ -1,16 +1,18 @@
-use crate::interface::{Parse, Url};
+use crate::interface::Parse;
 use nom::bytes::complete::take_till1;
 use nom::error::ErrorKind;
 use nom::Err;
 use nom::IResult;
+use std::str::FromStr;
+use url::Url;
 
 impl Parse for Url {
     fn parse(i: &str) -> IResult<&str, Self> {
         let i2 = <&str>::clone(&i);
         let (i, url) = url(i)?;
 
-        if url::Url::parse(url).is_ok() {
-            Ok((i, Self::new(url)))
+        if let Ok(url) = Url::from_str(url) {
+            Ok((i, url))
         } else {
             Err(Err::Error((i2, ErrorKind::Verify)))
         }
@@ -26,8 +28,8 @@ mod tests {
     use super::*;
 
     fn assert(input: &str) {
-        let expected = Ok(("", Url::new(input)));
-        let actual = Url::parse(input);
+        let expected = Ok(("", Url::from_str(input).unwrap()));
+        let actual = Parse::parse(input);
 
         assert_eq!(expected, actual, "Input: {}", input);
     }

@@ -23,7 +23,7 @@ impl GitLabClient {
                 .error_for_status()?
                 .json()
                 .await?
-        }: Result<Namespace>)
+        }: Result<_>)
             .with_context(|| format!("Couldn't find namespace: {}", id))
     }
 }
