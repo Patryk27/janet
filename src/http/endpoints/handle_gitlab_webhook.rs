@@ -10,7 +10,7 @@ pub fn handle_gitlab_webhook(
 ) -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
     warp::path!("webhooks" / "gitlab")
         .and(warp::any().map(move || webhook_handler.clone()))
-        .and(body::content_length_limit(1 * 1024 * 1024))
+        .and(body::content_length_limit(5 * 1024 * 1024))
         .and(body::bytes())
         .and_then(handle)
 }
