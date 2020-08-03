@@ -15,10 +15,12 @@ class GitLabProject:
 
 
 class GitLabMergeRequest:
-    def __init__(self, project_id: int, iid: int, web_url: str) -> None:
+    def __init__(self, id: int, project_id: int, iid: int, web_url: str) -> None:
+        self.id = id
         self.project_id = project_id
         self.iid = iid
         self.web_url = web_url
+        self.state = "opened"
 
 
 class GitLabUser:
@@ -44,11 +46,11 @@ class GitLabState:
 
         self.projects[id] = GitLabProject(id, namespace)
 
-    def add_merge_request(self, project_id: int, iid: int, web_url: str) -> None:
+    def add_merge_request(self, id: int, project_id: int, iid: int, web_url: str) -> None:
         if project_id not in self.projects:
             raise Exception(f"Project not found: {project_id}")
 
-        self.merge_requests[(project_id, iid)] = GitLabMergeRequest(project_id, iid, web_url)
+        self.merge_requests[(project_id, iid)] = GitLabMergeRequest(id, project_id, iid, web_url)
 
     def add_user(self, id: int, username: str) -> None:
         self.users[id] = GitLabUser(id, username)

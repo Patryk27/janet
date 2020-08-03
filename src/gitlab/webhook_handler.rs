@@ -60,23 +60,23 @@ impl GitLabWebhookHandler {
         project: WebhookProject,
         object_attributes: WebhookMergeRequestAttrs,
     ) {
-        let project_id = project.id;
-        let merge_request_iid = object_attributes.iid;
+        let project = project.id;
+        let merge_request = object_attributes.iid;
 
         let event = match object_attributes.action.as_str() {
             "close" => Some(Event::MergeRequestClosed {
-                project_id,
-                merge_request_iid,
+                project,
+                merge_request,
             }),
 
             "merge" => Some(Event::MergeRequestMerged {
-                project_id,
-                merge_request_iid,
+                project,
+                merge_request,
             }),
 
             "reopen" => Some(Event::MergeRequestReopened {
-                project_id,
-                merge_request_iid,
+                project,
+                merge_request,
             }),
 
             _ => None,

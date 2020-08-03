@@ -1,6 +1,6 @@
 pub use self::{merge_request_dependency::*, new_merge_request_dependency::*};
 
-use crate::database::{Database, Id};
+use crate::database::{Database, Id, MergeRequest, User};
 use anyhow::*;
 use chrono::{DateTime, Utc};
 use std::ops::DerefMut;
@@ -30,22 +30,18 @@ impl MergeRequestDependenciesRepository {
             INSERT INTO merge_request_dependencies (
                 id,
                 user_id,
-                source_project_id,
-                source_merge_request_iid,
-                source_discussion_id,
-                dependency_project_id,
-                dependency_merge_request_iid
+                discussion_ext_id,
+                src_merge_request_id,
+                dst_merge_request_id
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?)
             ",
         )
         .bind(id)
         .bind(dep.user_id)
-        .bind(dep.source_project_id)
-        .bind(dep.source_merge_request_iid)
-        .bind(&dep.source_discussion_id)
-        .bind(dep.dependency_project_id)
-        .bind(dep.dependency_merge_request_iid)
+        .bind(&dep.discussion_ext_id)
+        .bind(dep.src_merge_request_id)
+        .bind(dep.dst_merge_request_id)
         .execute(conn.deref_mut())
         .await
         .with_context(|| format!("Couldn't add merge request dependency: {:?}", dep))?;
@@ -82,12 +78,11 @@ impl MergeRequestDependenciesRepository {
     }
 
     #[tracing::instrument(skip(self))]
-    pub async fn find_by_source(
+    pub async fn find_by_src(
         &self,
-        user_id: i64,
-        source_project_id: i64,
-        source_merge_request_iid: i64,
-        source_discussion_id: &str,
+        user_id: Id<User>,
+        discussion_ext_id: &str,
+        src_merge_request_id: Id<MergeRequest>,
     ) -> Result<Option<MergeRequestDependency>> {
         tracing::debug!("Accessing database");
 
@@ -103,25 +98,22 @@ impl MergeRequestDependenciesRepository {
                 
             WHERE
                 user_id = ? AND
-                source_project_id = ? AND
-                source_merge_request_iid = ? AND
-                source_discussion_id = ?
+                discussion_ext_id = ? AND
+                src_merge_request_id = ?
             ",
         )
         .bind(user_id)
-        .bind(source_project_id)
-        .bind(source_merge_request_iid)
-        .bind(source_discussion_id)
+        .bind(discussion_ext_id)
+        .bind(src_merge_request_id)
         .fetch_optional(conn.deref_mut())
         .await
         .context("Couldn't find merge request dependency")
     }
 
     #[tracing::instrument(skip(self))]
-    pub async fn find_by_dependency(
+    pub async fn find_by_dep(
         &self,
-        dependency_project_id: i64,
-        dependency_merge_request_id: i64,
+        dst_merge_request_id: Id<MergeRequest>,
     ) -> Result<Vec<MergeRequestDependency>> {
         tracing::debug!("Accessing database");
 
@@ -136,15 +128,13 @@ impl MergeRequestDependenciesRepository {
                 merge_request_dependencies
 
             WHERE
-                dependency_project_id = ? AND
-                dependency_merge_request_iid = ?
+                dst_merge_request_id = ?
 
             ORDER BY
                 checked_at ASC
             ",
         )
-        .bind(dependency_project_id)
-        .bind(dependency_merge_request_id)
+        .bind(dst_merge_request_id)
         .fetch_all(conn.deref_mut())
         .await
         .context("Couldn't find depending merge request dependencies")
@@ -183,6 +173,7 @@ impl MergeRequestDependenciesRepository {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::database::{NewMergeRequest, NewProject, NewUser};
 
     mod add {
         use super::*;
@@ -191,15 +182,43 @@ mod tests {
         async fn test() {
             let db = Database::mock().await;
 
+            let user_id = db.users().add(&NewUser { ext_id: 1 }).await.unwrap();
+
+            let project_id = db
+                .projects()
+                .add(&NewProject { ext_id: 100 })
+                .await
+                .unwrap();
+
+            let src_merge_request_id = db
+                .merge_requests()
+                .add(&NewMergeRequest {
+                    project_id,
+                    ext_id: 1234,
+                    iid: 1,
+                    state: "opened".to_string(),
+                })
+                .await
+                .unwrap();
+
+            let dst_merge_request_id = db
+                .merge_requests()
+                .add(&NewMergeRequest {
+                    project_id,
+                    ext_id: 1235,
+                    iid: 2,
+                    state: "opened".to_string(),
+                })
+                .await
+                .unwrap();
+
             let id = db
                 .merge_request_dependencies()
                 .add(&NewMergeRequestDependency {
-                    user_id: 1,
-                    source_project_id: 100,
-                    source_merge_request_iid: 1,
-                    source_discussion_id: "CAFEBABE".into(),
-                    dependency_project_id: 120,
-                    dependency_merge_request_iid: 3,
+                    user_id,
+                    discussion_ext_id: "CAFEBABE".to_string(),
+                    src_merge_request_id,
+                    dst_merge_request_id,
                 })
                 .await
                 .unwrap();
@@ -207,99 +226,11 @@ mod tests {
             let dep = db.merge_request_dependencies().get(id).await.unwrap();
 
             assert_eq!(id, dep.id);
-            assert_eq!(1, dep.user_id);
-            assert_eq!(100, dep.source_project_id);
-            assert_eq!(1, dep.source_merge_request_iid);
-            assert_eq!("CAFEBABE", dep.source_discussion_id);
-            assert_eq!(120, dep.dependency_project_id);
-            assert_eq!(3, dep.dependency_merge_request_iid);
+            assert_eq!(user_id, dep.user_id);
+            assert_eq!("CAFEBABE", dep.discussion_ext_id);
+            assert_eq!(src_merge_request_id, dep.src_merge_request_id);
+            assert_eq!(dst_merge_request_id, dep.dst_merge_request_id);
             assert_eq!(dep.checked_at, dep.created_at);
         }
-    }
-
-    mod find_by_dependency {
-        use super::*;
-
-        #[tokio::test(threaded_scheduler)]
-        async fn test() {
-            let db = Database::mock().await;
-            let repo = db.merge_request_dependencies();
-
-            let dep_1 = db
-                .merge_request_dependencies()
-                .add(&NewMergeRequestDependency {
-                    user_id: 1,
-                    source_project_id: 100,
-                    source_merge_request_iid: 1,
-                    source_discussion_id: "CAFEBABE".into(),
-                    dependency_project_id: 120,
-                    dependency_merge_request_iid: 3,
-                })
-                .await
-                .unwrap();
-
-            let dep_2 = db
-                .merge_request_dependencies()
-                .add(&NewMergeRequestDependency {
-                    user_id: 1,
-                    source_project_id: 100,
-                    source_merge_request_iid: 2,
-                    source_discussion_id: "CAFEBABE".into(),
-                    dependency_project_id: 120,
-                    dependency_merge_request_iid: 3,
-                })
-                .await
-                .unwrap();
-
-            let dep_3 = db
-                .merge_request_dependencies()
-                .add(&NewMergeRequestDependency {
-                    user_id: 1,
-                    source_project_id: 110,
-                    source_merge_request_iid: 1,
-                    source_discussion_id: "CAFEBABE".into(),
-                    dependency_project_id: 130,
-                    dependency_merge_request_iid: 1,
-                })
-                .await
-                .unwrap();
-
-            {
-                let deps = db
-                    .merge_request_dependencies()
-                    .find_by_dependency(120, 3)
-                    .await
-                    .unwrap();
-
-                assert_eq!(2, deps.len());
-                assert!(deps.iter().any(|dep| dep.id == dep_1));
-                assert!(deps.iter().any(|dep| dep.id == dep_2));
-            }
-
-            {
-                let deps = db
-                    .merge_request_dependencies()
-                    .find_by_dependency(130, 1)
-                    .await
-                    .unwrap();
-
-                assert_eq!(1, deps.len());
-                assert_eq!(dep_3, deps[0].id);
-            }
-
-            {
-                let deps = db
-                    .merge_request_dependencies()
-                    .find_by_dependency(130, 2)
-                    .await
-                    .unwrap();
-
-                assert_eq!(0, deps.len());
-            }
-        }
-    }
-
-    mod find_stale {
-        // TODO
     }
 }

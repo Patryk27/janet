@@ -3,7 +3,7 @@ use anyhow::{Context, Result};
 
 impl GitLabClient {
     #[tracing::instrument(skip(self))]
-    pub async fn project(&self, id: String) -> Result<Project> {
+    pub async fn project(&self, id: &str) -> Result<Project> {
         tracing::debug!("Sending request");
 
         (try {

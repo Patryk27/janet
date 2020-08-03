@@ -5,6 +5,7 @@ use std::sync::Arc;
 use tokio::sync::mpsc;
 
 mod processes;
+mod utils;
 
 #[derive(Clone, Debug)]
 pub struct Cpu {

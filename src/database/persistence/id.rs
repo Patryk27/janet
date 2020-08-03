@@ -1,14 +1,13 @@
 use sqlx::database::{HasArguments, HasValueRef};
 use sqlx::encode::IsNull;
 use sqlx::error::BoxDynError;
-use sqlx::sqlite::Sqlite;
-use sqlx::Database;
+use sqlx::sqlite::{Sqlite, SqliteRow};
+use sqlx::{Database, Error, Row};
 use std::fmt;
 use std::marker::PhantomData;
 use std::str::FromStr;
 use uuid::Uuid;
 
-// TODO add custom Debug impl
 #[derive(Debug)]
 pub struct Id<T> {
     id: Uuid,
@@ -74,5 +73,11 @@ impl<'r, T> sqlx::Decode<'r, Sqlite> for Id<T> {
             id,
             _model: Default::default(),
         })
+    }
+}
+
+impl<'r, T> sqlx::FromRow<'r, SqliteRow> for Id<T> {
+    fn from_row(row: &'r SqliteRow) -> Result<Self, Error> {
+        Ok(row.try_get(0)?)
     }
 }

@@ -9,17 +9,17 @@ pub type EventRx = mpsc::UnboundedReceiver<Event>;
 #[serde(tag = "type", content = "payload")]
 pub enum Event {
     MergeRequestClosed {
-        project_id: ProjectId,
-        merge_request_iid: MergeRequestIid,
+        project: ProjectId,
+        merge_request: MergeRequestIid,
     },
 
     MergeRequestMerged {
-        project_id: ProjectId,
-        merge_request_iid: MergeRequestIid,
+        project: ProjectId,
+        merge_request: MergeRequestIid,
     },
 
     MergeRequestReopened {
-        project_id: ProjectId,
-        merge_request_iid: MergeRequestIid,
+        project: ProjectId,
+        merge_request: MergeRequestIid,
     },
 }

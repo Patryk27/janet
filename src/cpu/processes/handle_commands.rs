@@ -1,7 +1,10 @@
+//! TODO proof of concept - requires solid refactoring
+
+use super::super::utils::*;
 use crate::database::{Database, NewMergeRequestDependency};
 use crate::gitlab::GitLabClient;
 use crate::interface::{Command, CommandRx, PtrContext};
-use anyhow::{bail, Result};
+use anyhow::*;
 use std::sync::Arc;
 use tokio::stream::StreamExt;
 use tokio::task;
@@ -47,82 +50,76 @@ async fn handle_command_inner(db: Database, gitlab: Arc<GitLabClient>, cmd: Comm
             source,
             dependency,
         } => {
-            let user = gitlab.user(user).await?;
+            let (gl_user, user_id) = sync_user(&db, &gitlab, user).await?;
 
-            let (source_project_id, source_merge_request_iid) =
-                source.resolve(&gitlab, &Default::default()).await?;
+            let (gl_src_project, gl_src_mr, src_mr_id) =
+                sync_merge_request(&db, &gitlab, &source, &Default::default()).await?;
 
-            let source_project = gitlab
-                .project(source_project_id.inner().to_string())
-                .await?;
+            let (gl_dst_project, gl_dst_mr, dst_mr_id) = sync_merge_request(
+                &db,
+                &gitlab,
+                &dependency,
+                &PtrContext {
+                    namespace_id: Some(gl_src_project.namespace.id),
+                    project_id: Some(gl_src_project.id),
+                },
+            )
+            .await?;
 
-            let ctxt = PtrContext {
-                namespace_id: Some(source_project.namespace.id),
-                project_id: Some(source_project.id),
-            };
-
-            let (dependency_project_id, dependency_merge_request_iid) =
-                dependency.resolve(&gitlab, &ctxt).await?;
-
-            let dep = db
+            let dependency = db
                 .merge_request_dependencies()
-                .find_by_source(
-                    user.id.inner() as _,
-                    source_project_id.inner() as _,
-                    source_merge_request_iid.inner() as _,
-                    discussion.as_ref(),
-                )
+                .find_by_src(user_id, discussion.as_ref(), src_mr_id)
                 .await?;
 
             if action.is_add() {
                 if gitlab
-                    .merge_request(dependency_project_id, dependency_merge_request_iid)
+                    .merge_request(gl_dst_project.id, gl_dst_mr.iid)
                     .await
                     .is_ok()
                 {
-                    if dep.is_none() {
+                    if dependency.is_none() {
                         db.merge_request_dependencies()
                             .add(&NewMergeRequestDependency {
-                                user_id: user.id.inner() as _,
-                                source_project_id: source_project_id.inner() as _,
-                                source_merge_request_iid: source_merge_request_iid.inner() as _,
-                                source_discussion_id: discussion.as_ref().into(),
-                                dependency_project_id: dependency_project_id.inner() as _,
-                                dependency_merge_request_iid: dependency_merge_request_iid.inner()
-                                    as _,
+                                user_id,
+                                discussion_ext_id: discussion.as_ref().into(),
+                                src_merge_request_id: src_mr_id,
+                                dst_merge_request_id: dst_mr_id,
                             })
                             .await?;
                     }
 
                     gitlab
                         .create_merge_request_note(
-                            source_project_id,
-                            source_merge_request_iid,
+                            gl_src_project.id,
+                            gl_src_mr.iid,
                             &discussion,
-                            format!("@{} :+1:", user.username),
+                            format!("@{} :+1:", gl_user.username),
                         )
                         .await?;
                 } else {
                     gitlab
                         .create_merge_request_note(
-                            source_project_id,
-                            source_merge_request_iid,
+                            gl_src_project.id,
+                            gl_src_mr.iid,
                             &discussion,
-                            format!("@{} sorry, I couldn't find this merge request - could you please ensure it exists and re-create / delete your comment?", user.username),
+                            format!(
+                                "@{} sorry, I couldn't find this merge request - could you please ensure it exists and re-create / delete your comment?",
+                                gl_user.username
+                            ),
                         )
                         .await?;
                 }
             } else {
-                if let Some(dep) = dep {
+                if let Some(dep) = dependency {
                     db.merge_request_dependencies().remove(dep.id).await?;
                 }
 
                 gitlab
                     .create_merge_request_note(
-                        source_project_id,
-                        source_merge_request_iid,
+                        gl_src_project.id,
+                        gl_src_mr.iid,
                         &discussion,
-                        format!("@{} :+1:", user.username),
+                        format!("@{} :+1:", gl_user.username),
                     )
                     .await?;
             }

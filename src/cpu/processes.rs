@@ -1,7 +1,7 @@
 use self::{
     handle_commands::handle_commands,
     handle_events::handle_events,
-    track_merge_request_dependencies::track_merge_request_dependencies,
+    track_merge_request_deps::track_merge_request_deps,
     track_reminders::track_reminders,
 };
 
@@ -13,7 +13,7 @@ use tokio::{task, try_join};
 
 mod handle_commands;
 mod handle_events;
-mod track_merge_request_dependencies;
+mod track_merge_request_deps;
 mod track_reminders;
 
 pub fn launch(db: Database, gitlab: Arc<GitLabClient>, cmds: CommandRx, evts: EventRx) {
@@ -21,8 +21,7 @@ pub fn launch(db: Database, gitlab: Arc<GitLabClient>, cmds: CommandRx, evts: Ev
 
     let handle_events = task::spawn(handle_events(db.clone(), gitlab.clone(), evts));
 
-    let track_merge_request_dependencies =
-        task::spawn(track_merge_request_dependencies(db.clone()));
+    let track_merge_request_dependencies = task::spawn(track_merge_request_deps(db.clone()));
 
     let track_reminders = task::spawn(track_reminders(db));
 

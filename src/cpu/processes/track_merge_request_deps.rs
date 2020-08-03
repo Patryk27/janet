@@ -5,7 +5,7 @@ use anyhow::Result;
 use chrono::Utc;
 use tokio::time::{delay_for, Duration};
 
-pub async fn track_merge_request_dependencies(db: Database) -> Result<()> {
+pub async fn track_merge_request_deps(db: Database) -> Result<()> {
     let merge_request_deps = db.merge_request_dependencies();
 
     loop {

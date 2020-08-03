@@ -19,10 +19,10 @@ impl ProjectPtr {
                             .ok_or_else(|| anyhow!("Cannot infer namespace id"))?
                     };
 
-                    let namespace = gitlab.namespace(namespace.inner().to_string()).await?;
+                    let namespace = gitlab.namespace(&namespace.inner().to_string()).await?;
 
                     gitlab
-                        .project(format!("{}/{}", namespace.full_path, name.as_ref()))
+                        .project(&format!("{}/{}", namespace.full_path, name.as_ref()))
                         .await?
                         .id
                 }

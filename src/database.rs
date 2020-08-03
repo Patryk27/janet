@@ -51,7 +51,19 @@ impl Database {
         MergeRequestDependenciesRepository::new(self.clone())
     }
 
+    pub fn merge_requests(&self) -> MergeRequestsRepository {
+        MergeRequestsRepository::new(self.clone())
+    }
+
+    pub fn projects(&self) -> ProjectsRepository {
+        ProjectsRepository::new(self.clone())
+    }
+
     pub fn reminders(&self) -> RemindersRepository {
         RemindersRepository::new(self.clone())
+    }
+
+    pub fn users(&self) -> UsersRepository {
+        UsersRepository::new(self.clone())
     }
 }

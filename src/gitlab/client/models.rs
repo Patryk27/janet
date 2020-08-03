@@ -1,6 +1,7 @@
 pub use self::{
     discussion_id::*,
     merge_request::*,
+    merge_request_id::*,
     merge_request_iid::*,
     namespace::*,
     namespace_id::*,
@@ -15,6 +16,7 @@ pub use self::{
 
 mod discussion_id;
 mod merge_request;
+mod merge_request_id;
 mod merge_request_iid;
 mod namespace;
 mod namespace_id;
