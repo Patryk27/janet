@@ -3,12 +3,13 @@ use crate::interface::{MergeRequestPtr, PtrContext};
 use anyhow::*;
 
 impl MergeRequestPtr {
+    #[tracing::instrument(skip(gitlab))]
     pub async fn resolve(
         &self,
         gitlab: &GitLabClient,
         ctxt: &PtrContext,
     ) -> Result<(ProjectId, MergeRequestIid)> {
-        tracing::debug!("Resolving merge request ptr: {:?}", self);
+        tracing::debug!("Resolving merge request pointer");
 
         (try {
             match self {

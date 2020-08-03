@@ -3,8 +3,9 @@ use crate::interface::{ProjectPtr, PtrContext};
 use anyhow::*;
 
 impl ProjectPtr {
+    #[tracing::instrument(skip(gitlab))]
     pub async fn resolve(&self, gitlab: &GitLabClient, ctxt: &PtrContext) -> Result<ProjectId> {
-        tracing::debug!("Resolving project ptr: {:?}", self);
+        tracing::debug!("Resolving project pointer");
 
         (try {
             match self {

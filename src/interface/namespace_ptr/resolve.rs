@@ -3,8 +3,9 @@ use crate::interface::NamespacePtr;
 use anyhow::*;
 
 impl NamespacePtr {
+    #[tracing::instrument(skip(gitlab))]
     pub async fn resolve(&self, gitlab: &GitLabClient) -> Result<NamespaceId> {
-        tracing::debug!("Resolving namespace ptr: {:?}", self);
+        tracing::debug!("Resolving namespace pointer");
 
         (try {
             match self {
