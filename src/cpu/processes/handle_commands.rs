@@ -55,6 +55,8 @@ async fn handle_command_inner(db: Database, gitlab: Arc<GitLabClient>, cmd: Comm
             let (gl_src_project, gl_src_mr, src_mr_id) =
                 sync_merge_request(&db, &gitlab, &source, &Default::default()).await?;
 
+            // TODO when anything below this line fails, we should notify OP
+
             let (gl_dst_project, gl_dst_mr, dst_mr_id) = sync_merge_request(
                 &db,
                 &gitlab,
