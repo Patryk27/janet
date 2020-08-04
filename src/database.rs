@@ -1,4 +1,4 @@
-pub use self::{config::*, persistence::*};
+pub use self::{config::*, tables::*};
 
 use anyhow::{Context, Result};
 use sqlx::{Connection, SqliteConnection};
@@ -7,7 +7,7 @@ use tokio::sync::Mutex;
 
 mod config;
 mod migrations;
-mod persistence;
+mod tables;
 
 #[derive(Clone)]
 pub struct Database {
