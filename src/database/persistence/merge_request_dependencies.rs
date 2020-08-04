@@ -2,7 +2,6 @@ pub use self::{merge_request_dependency::*, new_merge_request_dependency::*};
 
 use crate::database::{Database, Id, MergeRequest, User};
 use anyhow::*;
-use chrono::{DateTime, Utc};
 use std::ops::DerefMut;
 
 mod merge_request_dependency;
@@ -131,42 +130,13 @@ impl MergeRequestDependenciesRepository {
                 dst_merge_request_id = ?
 
             ORDER BY
-                checked_at ASC
+                created_at ASC
             ",
         )
         .bind(dst_merge_request_id)
         .fetch_all(conn.deref_mut())
         .await
         .context("Couldn't find depending merge request dependencies")
-    }
-
-    #[tracing::instrument(skip(self))]
-    pub async fn find_stale(
-        &self,
-        checked_at: DateTime<Utc>,
-    ) -> Result<Vec<MergeRequestDependency>> {
-        tracing::debug!("Accessing database");
-
-        let mut conn = self.db.conn.lock().await;
-
-        sqlx::query_as(
-            "
-            SELECT
-                *
-                
-            FROM
-                merge_request_dependencies
-                
-            WHERE
-                checked_at <= ?
-                
-            ORDER BY
-                checked_at ASC",
-        )
-        .bind(checked_at)
-        .fetch_all(conn.deref_mut())
-        .await
-        .context("Couldn't find stale merge request dependencies")
     }
 }
 
@@ -230,7 +200,6 @@ mod tests {
             assert_eq!("CAFEBABE", dep.discussion_ext_id);
             assert_eq!(src_merge_request_id, dep.src_merge_request_id);
             assert_eq!(dst_merge_request_id, dep.dst_merge_request_id);
-            assert_eq!(dep.checked_at, dep.created_at);
         }
     }
 }

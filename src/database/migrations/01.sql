@@ -38,12 +38,14 @@ CREATE TABLE merge_requests
     ext_id     INT      NOT NULL,
     iid        INT      NOT NULL,
     state      TEXT     NOT NULL,
+    checked_at DATETIME NOT NULL DEFAULT (datetime('now', 'localtime')),
     created_at DATETIME NOT NULL DEFAULT (datetime('now', 'localtime')),
     FOREIGN KEY (project_id) REFERENCES projects (id)
 ) WITHOUT ROWID;
 
 CREATE UNIQUE INDEX idx_merge_requests_ext_id ON merge_requests (ext_id);
 CREATE UNIQUE INDEX idx_merge_requests_iid ON merge_requests (project_id, iid);
+CREATE INDEX idx_merge_requests_checked_at ON merge_requests (checked_at);
 
 --
 
@@ -54,7 +56,6 @@ CREATE TABLE merge_request_dependencies
     discussion_ext_id    TEXT     NOT NULL,
     src_merge_request_id TEXT     NOT NULL,
     dst_merge_request_id TEXT     NOT NULL,
-    checked_at           DATETIME NOT NULL DEFAULT (datetime('now', 'localtime')),
     created_at           DATETIME NOT NULL DEFAULT (datetime('now', 'localtime')),
     FOREIGN KEY (user_id) REFERENCES users (id),
     FOREIGN KEY (src_merge_request_id) REFERENCES merge_requests (id),
@@ -63,7 +64,6 @@ CREATE TABLE merge_request_dependencies
 
 CREATE INDEX idx_merge_request_dependencies_src ON merge_request_dependencies (discussion_ext_id, src_merge_request_id);
 CREATE INDEX idx_merge_request_dependencies_dst ON merge_request_dependencies (dst_merge_request_id);
-CREATE INDEX idx_merge_request_dependencies_checked_at ON merge_request_dependencies (checked_at);
 
 --
 

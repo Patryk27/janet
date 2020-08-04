@@ -169,6 +169,7 @@ mod tests {
                 assert_eq!(i, mr.ext_id);
                 assert_eq!(i * 2, mr.iid);
                 assert_eq!("opened", mr.state);
+                assert_eq!(mr.checked_at, mr.created_at);
             }
         }
     }

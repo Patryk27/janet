@@ -8,5 +8,6 @@ pub struct MergeRequest {
     pub ext_id: i64,
     pub iid: i64,
     pub state: String,
+    pub checked_at: DateTime<Utc>,
     pub created_at: DateTime<Utc>,
 }
