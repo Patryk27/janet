@@ -7,6 +7,8 @@ path = "/tmp/janet.db"
 [http]
 addr = "127.0.0.1:10000"
 
+[log]
+
 [gitlab]
 url = "http://127.0.0.1:10001"
 personal_access_token = "token"

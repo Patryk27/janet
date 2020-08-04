@@ -1,6 +1,7 @@
 use crate::database::DatabaseConfig;
 use crate::gitlab::GitLabConfig;
 use crate::http::HttpConfig;
+use crate::log::LogConfig;
 use anyhow::{Context, Result};
 use serde::Deserialize;
 use tokio::fs;
@@ -11,6 +12,7 @@ pub struct Config {
     pub bot: BotConfig,
     pub database: DatabaseConfig,
     pub http: HttpConfig,
+    pub log: LogConfig,
     pub gitlab: GitLabConfig,
 }
 

@@ -7,6 +7,9 @@ path = "database.db"
 [http]
 addr = "0.0.0.0:1234"
 
+[log]
+# graylog = "127.0.0.1:12201"
+
 [gitlab]
 url = "https://"
 personal_access_token = ""

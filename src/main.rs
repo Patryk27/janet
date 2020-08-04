@@ -10,7 +10,7 @@ mod database;
 mod gitlab;
 mod http;
 mod interface;
-mod logging;
+mod log;
 
 const LOGO: &str = r#"
        __                 __ 
@@ -23,19 +23,17 @@ const LOGO: &str = r#"
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    logging::init().context("Couldn't initialize logger")?;
-
-    for line in LOGO.lines().skip(1) {
-        tracing::info!("{}", line);
-    }
-
     let config = {
-        tracing::info!("Loading configuration");
-
         config::Config::load()
             .await
             .context("Couldn't load configuration from `config.toml`")?
     };
+
+    log::init(config.log).context("Couldn't initialize log")?;
+
+    for line in LOGO.lines().skip(1) {
+        tracing::info!("{}", line);
+    }
 
     let db = {
         tracing::info!("Initializing database (path = {})", config.database.path);
