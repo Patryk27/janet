@@ -70,8 +70,6 @@ async fn notify_merge_request_dependency(
         //      we should detect it and remove merge request dependency from the
         //      database not to spam the API
 
-        panic!("{:#?}", err);
-
         // We don't want for this error to get propagated, because - whatever the error
         // says - we want to dispatch as many notes as possible; if we don't send one
         // comment, let's at least rest assured knowing the rest got out
