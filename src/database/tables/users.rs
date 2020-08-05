@@ -1,11 +1,11 @@
 pub use self::{new_user::*, user::*};
 
+mod new_user;
+mod user;
+
 use crate::database::{Database, Id};
 use anyhow::*;
 use std::ops::DerefMut;
-
-mod new_user;
-mod user;
 
 #[derive(Clone)]
 pub struct UsersRepository {

@@ -1,14 +1,14 @@
 pub use self::{config::*, models::*};
 
+mod config;
+mod endpoints;
+mod models;
+
 use anyhow::Result;
 use reqwest::header::HeaderMap;
 use reqwest::{header, Client, Url};
 use std::iter::FromIterator;
 use std::time::Duration;
-
-mod config;
-mod endpoints;
-mod models;
 
 pub struct GitLabClient {
     url: Url,
@@ -35,7 +35,9 @@ impl GitLabClient {
     #[cfg(test)]
     pub fn mock() -> Self {
         Self::new(GitLabClientConfig {
-            url: format!("{}/gitlab", mockito::server_url()).parse().unwrap(),
+            url: format!("{}/gitlab/", mockito::server_url())
+                .parse()
+                .unwrap(),
             personal_access_token: "token".into(),
         })
         .unwrap()

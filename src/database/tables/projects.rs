@@ -1,11 +1,11 @@
 pub use self::{new_project::*, project::*};
 
+mod new_project;
+mod project;
+
 use crate::database::{Database, Id};
 use anyhow::*;
 use std::ops::DerefMut;
-
-mod new_project;
-mod project;
 
 #[derive(Clone)]
 pub struct ProjectsRepository {

@@ -2,10 +2,10 @@
 
 pub use self::{new_reminder::*, reminder::*};
 
-use crate::database::Database;
-
 mod new_reminder;
 mod reminder;
+
+use crate::database::Database;
 
 #[derive(Clone)]
 pub struct RemindersRepository {

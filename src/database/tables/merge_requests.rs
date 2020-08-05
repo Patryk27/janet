@@ -1,11 +1,11 @@
 pub use self::{merge_request::*, new_merge_request::*};
 
+mod merge_request;
+mod new_merge_request;
+
 use crate::database::{Database, Id};
 use anyhow::*;
 use std::ops::DerefMut;
-
-mod merge_request;
-mod new_merge_request;
 
 #[derive(Clone)]
 pub struct MergeRequestsRepository {

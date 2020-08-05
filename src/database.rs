@@ -1,13 +1,13 @@
 pub use self::{config::*, tables::*};
 
+mod config;
+mod migrations;
+mod tables;
+
 use anyhow::{Context, Result};
 use sqlx::{Connection, SqliteConnection};
 use std::sync::Arc;
 use tokio::sync::Mutex;
-
-mod config;
-mod migrations;
-mod tables;
 
 #[derive(Clone)]
 pub struct Database {
@@ -16,6 +16,17 @@ pub struct Database {
 
 impl Database {
     pub async fn new(config: DatabaseConfig) -> Result<Self> {
+        if config.path.contains(":memory:") {
+            tracing::warn!("");
+            tracing::warn!("!! STARTING WITH AN IN-MEMORY DATABASE !!");
+            tracing::warn!("");
+            tracing::warn!("When you restart Janet, she'll forget everything.");
+            tracing::warn!(
+                "To get rid of this warning, please change `database.path` to point at a file."
+            );
+            tracing::warn!("");
+        }
+
         let mut conn = SqliteConnection::connect(&config.path)
             .await
             .context("Couldn't initialize SQLite")?;

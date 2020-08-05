@@ -1,11 +1,11 @@
 pub use self::{log::*, new_log::*};
 
+mod log;
+mod new_log;
+
 use crate::database::Database;
 use anyhow::*;
 use std::ops::DerefMut;
-
-mod log;
-mod new_log;
 
 #[derive(Clone)]
 pub struct LogsRepository {

@@ -2,7 +2,7 @@ use crate::gitlab::{DiscussionId, UserId};
 use crate::interface::{
     Command,
     CommandAction,
-    DateTimeSpec,
+    DateTime,
     MergeRequestPtr,
     Parse,
     ParseError,
@@ -98,7 +98,7 @@ fn reminder<'a>(
 ) -> IResult<&'a str, Command> {
     let (i, action) = action(i)?;
     let (i, _) = tag_no_case("remind me ")(i)?;
-    let (i, remind_at) = DateTimeSpec::parse(i)?;
+    let (i, remind_at) = DateTime::parse(i)?;
 
     Ok((
         i,
@@ -150,8 +150,8 @@ mod tests {
             assert(
                 Command::Hi {
                     user: user(),
-                    discussion: discussion(),
                     merge_request: merge_request(),
+                    discussion: discussion(),
                 },
                 "hi",
             );

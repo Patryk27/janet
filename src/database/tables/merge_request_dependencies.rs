@@ -1,11 +1,11 @@
 pub use self::{merge_request_dependency::*, new_merge_request_dependency::*};
 
+mod merge_request_dependency;
+mod new_merge_request_dependency;
+
 use crate::database::{Database, Id, MergeRequest, User};
 use anyhow::*;
 use std::ops::DerefMut;
-
-mod merge_request_dependency;
-mod new_merge_request_dependency;
 
 #[derive(Clone)]
 pub struct MergeRequestDependenciesRepository {

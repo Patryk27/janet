@@ -1,16 +1,19 @@
 #![feature(try_blocks)]
 #![feature(type_ascription)]
 
-use anyhow::{Context, Result};
+use anyhow::*;
 use std::sync::Arc;
+use tokio::try_join;
+use utils::spawn_future;
 
 mod config;
-mod cpu;
 mod database;
 mod gitlab;
 mod http;
 mod interface;
 mod log;
+mod system;
+mod utils;
 
 const LOGO: &str = r#"
        __                 __ 
@@ -38,17 +41,6 @@ async fn main() -> Result<()> {
     let db = {
         tracing::info!("Initializing database (path = {})", config.database.path);
 
-        if config.database.path.contains(":memory:") {
-            tracing::warn!("");
-            tracing::warn!("!! STARTING WITH AN IN-MEMORY DATABASE !!");
-            tracing::warn!("");
-            tracing::warn!("When you restart Janet, she'll forget everything.");
-            tracing::warn!(
-                "To get rid of this warning, please change `database.path` to point at a file."
-            );
-            tracing::warn!("");
-        }
-
         database::Database::new(config.database)
             .await
             .context("Couldn't initialize database")?
@@ -64,22 +56,35 @@ async fn main() -> Result<()> {
         )
     };
 
-    let cpu = {
-        tracing::info!("Initializing CPU");
-
-        Arc::new(cpu::Cpu::init(db, gitlab.clone()))
+    let (system, system_task) = {
+        tracing::info!("Initializing system");
+        system::System::init(db, gitlab.clone())
     };
 
     let gitlab_webhook_handler = Arc::new(gitlab::GitLabWebhookHandler::new(
         config.bot.name,
         config.gitlab.webhook_secret,
         gitlab.clone(),
-        cpu.clone(),
+        system.clone(),
     ));
 
-    http::init(config.http, gitlab_webhook_handler).await;
+    let http_task = {
+        tracing::info!("Initializing HTTP server");
+        http::init(config.http, gitlab_webhook_handler)
+    };
 
-    tracing::info!("Shutting down");
+    let system_task = spawn_future(system_task);
+    let http_task = spawn_future(http_task);
 
-    Ok(())
+    match try_join!(system_task, http_task) {
+        Ok(_) => {
+            tracing::info!("Shutting down correctly");
+            Ok(())
+        }
+
+        Err(err) => {
+            tracing::error!("Shutting down because of a system error: {:?}", err);
+            Err(err)
+        }
+    }
 }

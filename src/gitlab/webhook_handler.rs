@@ -1,4 +1,3 @@
-use crate::cpu::Cpu;
 use crate::gitlab::{
     GitLabClient,
     WebhookEvent,
@@ -8,6 +7,7 @@ use crate::gitlab::{
     WebhookProject,
 };
 use crate::interface::{Command, Event, MergeRequestPtr, ProjectPtr};
+use crate::system::System;
 use anyhow::Result;
 use std::sync::Arc;
 
@@ -16,7 +16,7 @@ pub struct GitLabWebhookHandler {
     // TODO
     webhook_secret: String,
     gitlab: Arc<GitLabClient>,
-    cpu: Arc<Cpu>,
+    system: Arc<System>,
 }
 
 impl GitLabWebhookHandler {
@@ -24,13 +24,13 @@ impl GitLabWebhookHandler {
         bot_name: String,
         webhook_secret: String,
         gitlab: Arc<GitLabClient>,
-        cpu: Arc<Cpu>,
+        system: Arc<System>,
     ) -> Self {
         Self {
             bot_name,
             webhook_secret,
             gitlab,
-            cpu,
+            system,
         }
     }
 
@@ -83,7 +83,7 @@ impl GitLabWebhookHandler {
         };
 
         if let Some(event) = event {
-            self.cpu.handle_event(event);
+            self.system.send_evt(event);
         }
     }
 
@@ -114,7 +114,7 @@ impl GitLabWebhookHandler {
 
         match Command::parse(user, merge_request_ptr, discussion.clone(), cmd) {
             Ok(cmd) => {
-                self.cpu.handle_command(cmd);
+                self.system.send_cmd(cmd);
             }
 
             Err(err) => {
