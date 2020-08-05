@@ -66,7 +66,7 @@ impl MergeRequestsRepository {
     }
 
     #[tracing::instrument(skip(self))]
-    pub async fn find_by_ext(
+    pub async fn find_by_external_id(
         &self,
         project_ext_id: i64,
         iid: i64,

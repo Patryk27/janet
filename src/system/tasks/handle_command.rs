@@ -15,7 +15,7 @@ use std::sync::Arc;
 pub async fn handle_command(ctxt: Arc<TaskContext>, cmd: Command) {
     tracing::debug!("Handling command");
 
-    match try_handling_command(ctxt, cmd).await {
+    match try_handle_command(ctxt, cmd).await {
         Ok(_) => {
             tracing::info!("Command handled");
         }
@@ -26,7 +26,7 @@ pub async fn handle_command(ctxt: Arc<TaskContext>, cmd: Command) {
     }
 }
 
-async fn try_handling_command(ctxt: Arc<TaskContext>, cmd: Command) -> Result<()> {
+async fn try_handle_command(ctxt: Arc<TaskContext>, cmd: Command) -> Result<()> {
     ctxt.db.logs().add((&cmd).into()).await?;
 
     match cmd {
