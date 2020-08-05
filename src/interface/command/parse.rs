@@ -37,6 +37,7 @@ pub fn parse(
     cmd: &str,
 ) -> IResult<&str, Command> {
     all_consuming(alt((
+        |i| hi(i, &user, &merge_request, &discussion),
         |i| merge_request_dependency(i, &user, &merge_request, &discussion),
         |i| reminder(i, &user, &merge_request, &discussion),
     )))(cmd)
@@ -47,6 +48,24 @@ fn action(i: &str) -> IResult<&str, CommandAction> {
     let remove = value(CommandAction::Remove, char('-'));
 
     alt((add, remove))(i)
+}
+
+fn hi<'a>(
+    i: &'a str,
+    user: &UserId,
+    merge_request: &MergeRequestPtr,
+    discussion: &DiscussionId,
+) -> IResult<&'a str, Command> {
+    let (i, _) = tag_no_case("hi")(i)?;
+
+    Ok((
+        i,
+        Command::Hi {
+            user: user.to_owned(),
+            merge_request: merge_request.to_owned(),
+            discussion: discussion.to_owned(),
+        },
+    ))
 }
 
 fn merge_request_dependency<'a>(
@@ -121,6 +140,22 @@ mod tests {
         let actual = Command::parse(user(), merge_request(), discussion(), input).unwrap();
 
         assert_eq!(expected, actual, "Input: {}", input);
+    }
+
+    mod hi {
+        use super::*;
+
+        #[test]
+        fn test() {
+            assert(
+                Command::Hi {
+                    user: user(),
+                    discussion: discussion(),
+                    merge_request: merge_request(),
+                },
+                "hi",
+            );
+        }
     }
 
     mod mod_merge_request_dependency {

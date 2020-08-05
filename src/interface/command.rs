@@ -11,6 +11,12 @@ pub type CommandRx = mpsc::UnboundedReceiver<Command>;
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 #[serde(tag = "type", content = "payload")]
 pub enum Command {
+    Hi {
+        user: UserId,
+        discussion: DiscussionId,
+        merge_request: MergeRequestPtr,
+    },
+
     MergeRequestDependency {
         action: CommandAction,
         user: UserId,

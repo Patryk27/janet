@@ -43,6 +43,26 @@ async fn handle_command_inner(db: Database, gitlab: Arc<GitLabClient>, cmd: Comm
     db.logs().add((&cmd).into()).await?;
 
     match cmd {
+        Command::Hi {
+            user,
+            discussion,
+            merge_request,
+        } => {
+            let user = gitlab.user(user).await?;
+
+            let (project_id, merge_request_iid) =
+                merge_request.resolve(&gitlab, &Default::default()).await?;
+
+            gitlab
+                .create_merge_request_note(
+                    project_id,
+                    merge_request_iid,
+                    &discussion,
+                    format!("Hi, @{}!", user.username),
+                )
+                .await?;
+        }
+
         Command::MergeRequestDependency {
             action,
             user,
