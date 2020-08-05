@@ -9,7 +9,7 @@ use crate::interface::{
     ParseResult,
 };
 use nom::branch::alt;
-use nom::bytes::complete::tag_no_case;
+use nom::bytes::complete::{tag_no_case, take_while};
 use nom::character::complete::char;
 use nom::combinator::{all_consuming, value};
 use nom::IResult;
@@ -56,7 +56,8 @@ fn hi<'a>(
     merge_request: &MergeRequestPtr,
     discussion: &DiscussionId,
 ) -> IResult<&'a str, Command> {
-    let (i, _) = tag_no_case("hi")(i)?;
+    let (i, _) = alt((tag_no_case("hi"), tag_no_case("hello")))(i)?;
+    let (i, _) = take_while(|c| ['.', '!', ' '].iter().any(|&c2| c2 == c))(i)?;
 
     Ok((
         i,
@@ -137,7 +138,9 @@ mod tests {
 
     fn assert(expected: Command, input: impl AsRef<str>) {
         let input = input.as_ref();
-        let actual = Command::parse(user(), merge_request(), discussion(), input).unwrap();
+
+        let actual = Command::parse(user(), merge_request(), discussion(), input)
+            .expect(&format!("Input: {}", input));
 
         assert_eq!(expected, actual, "Input: {}", input);
     }
@@ -145,16 +148,32 @@ mod tests {
     mod hi {
         use super::*;
 
-        #[test]
-        fn test() {
-            assert(
+        fn assert(input: impl AsRef<str>) {
+            super::assert(
                 Command::Hi {
                     user: user(),
                     merge_request: merge_request(),
                     discussion: discussion(),
                 },
-                "hi",
+                input,
             );
+        }
+
+        #[test]
+        fn test() {
+            assert("hi");
+            assert("HI");
+            assert("hi.");
+            assert("hi!");
+            assert("hi!!");
+            assert("hi !!");
+
+            assert("hello");
+            assert("HELLO");
+            assert("hello.");
+            assert("hello!");
+            assert("hello!!");
+            assert("hello !!");
         }
     }
 
