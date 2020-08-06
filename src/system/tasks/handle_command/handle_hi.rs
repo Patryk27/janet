@@ -31,31 +31,26 @@ pub async fn handle_hi(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::gitlab::User;
+    use crate::gitlab as gl;
     use crate::interface::Parse;
-    use crate::utils::to_json;
+    use crate::utils::for_tests::*;
 
     #[tokio::test(threaded_scheduler)]
     async fn responds_hi() {
         let ctxt = TaskContext::mock().await;
 
-        let user_mock = mockito::mock("GET", "/gitlab/api/v4/users/123")
-            .with_body(to_json(&User {
-                id: UserId::new(123),
-                username: "someone".into(),
-            }))
-            .create();
+        let user_mock = mock_default_user();
 
-        let note_mock = mockito::mock(
-            "POST",
-            "/gitlab/api/v4/projects/222/merge_requests/333/discussions/cafebabe/notes",
-        )
-        .match_body(r#"{"body":"Hi, @someone!"}"#)
-        .create();
+        let note_mock = mock_note_created(
+            gl::ProjectId::new(222),
+            gl::MergeRequestIid::new(333),
+            &gl::DiscussionId::new("cafebabe"),
+            "Hi, @someone!",
+        );
 
         handle_hi(
             ctxt.clone(),
-            UserId::new(123),
+            UserId::new(100),
             DiscussionId::new("cafebabe"),
             MergeRequestPtr::do_parse("222!333"),
         )

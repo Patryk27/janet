@@ -128,7 +128,7 @@ async fn try_notify_merge_request_dependency(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::utils::to_json;
+    use crate::utils::for_tests::*;
     use crate::{database as db, gitlab as gl};
 
     mod given_untracked_merge_request {
@@ -224,32 +224,22 @@ mod tests {
 
             // Invocation #2: this call should dispatch one notification to the user #100
             {
-                let user_mock = mockito::mock("GET", "/gitlab/api/v4/users/100")
-                    .with_body(to_json(&gl::User {
-                        id: gl::UserId::new(123),
-                        username: "someone".to_string(),
-                    }))
-                    .create();
+                let user_mock = mock_default_user();
 
-                let dst_merge_request_mock =
-                    mockito::mock("GET", "/gitlab/api/v4/projects/123/merge_requests/2")
-                        .with_body(to_json(&gl::MergeRequest {
-                            id: gl::MergeRequestId::new(1024),
-                            iid: gl::MergeRequestIid::new(2),
-                            project_id: gl::ProjectId::new(123),
-                            state: "opened".to_string(),
-                            web_url: "http://merge-request".to_string(),
-                        }))
-                        .create();
+                let merge_request_mock = mock_merge_request(&gl::MergeRequest {
+                    id: gl::MergeRequestId::new(1024),
+                    iid: gl::MergeRequestIid::new(2),
+                    project_id: gl::ProjectId::new(123),
+                    state: "opened".to_string(),
+                    web_url: "http://merge-request".to_string(),
+                });
 
-                let note_mock = mockito::mock(
-                    "POST",
-                    "/gitlab/api/v4/projects/123/merge_requests/1/discussions/cafebabe/notes",
-                )
-                    .match_body(
-                        r#"{"body":"@someone related merge request http://merge-request has been merged"}"#,
-                    )
-                    .create();
+                let note_mock = mock_note_created(
+                    gl::ProjectId::new(123),
+                    gl::MergeRequestIid::new(1),
+                    &gl::DiscussionId::new("cafebabe"),
+                    "@someone related merge request http://merge-request has been merged",
+                );
 
                 handle_merge_request_state_changed(
                     ctxt,
@@ -261,7 +251,7 @@ mod tests {
                 .unwrap();
 
                 user_mock.assert();
-                dst_merge_request_mock.assert();
+                merge_request_mock.assert();
                 note_mock.assert();
             }
         }
