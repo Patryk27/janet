@@ -32,7 +32,7 @@ pub async fn handle_hi(
 mod tests {
     use super::*;
     use crate::gitlab as gl;
-    use crate::interface::Parse;
+    use crate::interface::ParseAtom;
     use crate::utils::for_tests::*;
 
     #[tokio::test(threaded_scheduler)]

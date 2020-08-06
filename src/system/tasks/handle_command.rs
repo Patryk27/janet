@@ -1,10 +1,6 @@
-use self::{
-    handle_hi::handle_hi,
-    handle_merge_request_dependency::handle_merge_request_dependency,
-};
+use self::handle_merge_request::*; // TODO use star import everywhere
 
-mod handle_hi;
-mod handle_merge_request_dependency;
+mod handle_merge_request;
 
 use crate::interface::Command;
 use crate::system::task::TaskContext;
@@ -26,31 +22,10 @@ pub async fn handle_command(ctxt: Arc<TaskContext>, cmd: Command) {
     }
 }
 
-async fn try_handle_command(ctxt: Arc<TaskContext>, cmd: Command) -> Result<()> {
-    ctxt.db.logs().add((&cmd).into()).await?;
+async fn try_handle_command(tctxt: Arc<TaskContext>, cmd: Command) -> Result<()> {
+    tctxt.db.logs().add((&cmd).into()).await?;
 
     match cmd {
-        Command::Hi {
-            user,
-            discussion,
-            merge_request,
-        } => {
-            handle_hi(ctxt, user, discussion, merge_request).await?;
-        }
-
-        Command::MergeRequestDependency {
-            action,
-            user,
-            discussion,
-            source,
-            dependency,
-        } => {
-            handle_merge_request_dependency(ctxt, action, user, discussion, source, dependency)
-                .await?;
-        }
-
-        _ => (),
+        Command::MergeRequest { ctxt, cmd } => handle_merge_request(tctxt, ctxt, cmd).await,
     }
-
-    Ok(())
 }

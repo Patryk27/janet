@@ -1,9 +1,9 @@
 use crate::gitlab::ProjectName;
-use crate::interface::{Name, Parse};
+use crate::interface::{Name, ParseAtom};
 use nom::combinator::map;
 use nom::IResult;
 
-impl Parse for ProjectName {
+impl ParseAtom for ProjectName {
     fn parse(i: &str) -> IResult<&str, Self> {
         map(Name::parse, |name| Self::new(name.into_inner()))(i)
     }

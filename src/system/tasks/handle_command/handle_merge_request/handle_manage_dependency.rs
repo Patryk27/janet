@@ -21,7 +21,7 @@ struct CmdPayload<'a> {
 }
 
 /// Handles the `+depends on` & `-depends on` commands.
-pub async fn handle_merge_request_dependency(
+pub async fn handle_manage_dependency(
     ctxt: Arc<TaskContext>,
     action: CommandAction,
     user: gl::UserId,
@@ -211,7 +211,7 @@ mod tests {
                 "@someone sorry, I couldn't find this merge request - could you please ensure it exists and re-create your comment?"
             );
 
-            handle_merge_request_dependency(
+            handle_manage_dependency(
                 ctxt,
                 CommandAction::Add,
                 gl::UserId::new(100),

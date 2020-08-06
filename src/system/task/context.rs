@@ -2,6 +2,7 @@ use crate::database::Database;
 use crate::gitlab::GitLabClient;
 use std::sync::Arc;
 
+// TODO could use a little renaming
 pub struct TaskContext {
     pub db: Database,
     pub gitlab: Arc<GitLabClient>,

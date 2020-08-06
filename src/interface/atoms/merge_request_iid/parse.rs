@@ -1,9 +1,9 @@
 use crate::gitlab::MergeRequestIid;
-use crate::interface::{Id, Parse};
+use crate::interface::{Id, ParseAtom};
 use nom::combinator::map;
 use nom::IResult;
 
-impl Parse for MergeRequestIid {
+impl ParseAtom for MergeRequestIid {
     fn parse(i: &str) -> IResult<&str, Self> {
         map(Id::parse, |id| MergeRequestIid::new(id.into_inner()))(i)
     }

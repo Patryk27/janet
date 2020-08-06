@@ -11,26 +11,9 @@ pub type CommandRx = mpsc::UnboundedReceiver<Command>;
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 #[serde(tag = "type", content = "payload")]
 pub enum Command {
-    Hi {
-        user: UserId,
-        merge_request: MergeRequestPtr,
-        discussion: DiscussionId,
-    },
-
-    MergeRequestDependency {
-        action: CommandAction,
-        user: UserId,
-        discussion: DiscussionId,
-        source: MergeRequestPtr,
-        dependency: MergeRequestPtr,
-    },
-
-    Reminder {
-        action: CommandAction,
-        user: UserId,
-        merge_request: MergeRequestPtr,
-        discussion: DiscussionId,
-        remind_at: DateTime,
+    MergeRequest {
+        ctxt: MergeRequestCommandContext,
+        cmd: MergeRequestCommand,
     },
 }
 
@@ -38,6 +21,29 @@ pub enum Command {
 pub enum CommandAction {
     Add,
     Remove,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(tag = "type", content = "payload")]
+pub enum MergeRequestCommand {
+    Hi,
+
+    ManageDependency {
+        action: CommandAction,
+        dependency: MergeRequestPtr,
+    },
+
+    ManageReminder {
+        action: CommandAction,
+        remind_at: DateTime,
+    },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct MergeRequestCommandContext {
+    pub user: UserId,
+    pub merge_request: MergeRequestPtr,
+    pub discussion: DiscussionId,
 }
 
 impl CommandAction {

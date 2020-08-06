@@ -1,7 +1,7 @@
 use nom::IResult;
 use thiserror::Error;
 
-pub trait Parse: Sized {
+pub trait ParseAtom: Sized {
     fn parse(i: &str) -> IResult<&str, Self>;
 
     #[cfg(test)]
