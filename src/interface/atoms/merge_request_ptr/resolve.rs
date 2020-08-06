@@ -4,6 +4,8 @@ use anyhow::*;
 use url::Url;
 
 impl MergeRequestPtr {
+    /// Translates reference to a merge request (e.g. `some-project!123`) into a
+    /// tuple of project id & merge request iid.
     #[tracing::instrument(skip(gitlab))]
     pub async fn resolve(
         &self,
@@ -32,8 +34,8 @@ impl MergeRequestPtr {
                     let url = url.path().to_lowercase();
                     let merge_requests = gitlab.merge_requests().await?;
 
-                    // This is suboptimal at best, but seems like GitLab doesn't allow to find merge
-                    // request by web_url via API
+                    // This is suboptimal at best, but seems like GitLab doesn't allow to search
+                    // merge requests by web_url via API
                     //
                     // TODO check if this is really the only reliable way to approach this
                     for merge_request in merge_requests {
