@@ -5,23 +5,20 @@ use std::sync::Arc;
 use warp::filters::body;
 use warp::{Filter, Rejection, Reply};
 
-pub fn handle_gitlab_webhook(
-    webhook_handler: Arc<GitLabWebhookHandler>,
+pub fn gitlab_webhook(
+    handler: Arc<GitLabWebhookHandler>,
 ) -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
     warp::path!("webhooks" / "gitlab")
-        .and(warp::any().map(move || webhook_handler.clone()))
+        .and(warp::any().map(move || handler.clone()))
         .and(body::content_length_limit(5 * 1024 * 1024))
         .and(body::bytes())
         .and_then(handle)
 }
 
-async fn handle(
-    webhook_handler: Arc<GitLabWebhookHandler>,
-    body: Bytes,
-) -> Result<impl Reply, Rejection> {
+async fn handle(handler: Arc<GitLabWebhookHandler>, body: Bytes) -> Result<impl Reply, Rejection> {
     match serde_json::from_slice(&body) {
         Ok(event) => {
-            webhook_handler.handle(event).await;
+            handler.handle(event).await;
         }
 
         Err(error) => {

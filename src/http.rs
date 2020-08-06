@@ -12,7 +12,7 @@ pub async fn init(
     config: HttpConfig,
     gitlab_webhook_handler: Arc<GitLabWebhookHandler>,
 ) -> Result<()> {
-    let router = endpoints::health().or(endpoints::handle_gitlab_webhook(gitlab_webhook_handler));
+    let router = endpoints::health().or(endpoints::gitlab_webhook(gitlab_webhook_handler));
 
     tracing::info!("Starting server at: {}", config.addr);
 
