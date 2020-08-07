@@ -4,6 +4,7 @@ use crate::http::HttpConfig;
 use crate::log::LogConfig;
 use anyhow::{Context, Result};
 use serde::Deserialize;
+use std::path::Path;
 use tokio::fs;
 
 #[derive(Clone, Debug, Deserialize)]
@@ -23,11 +24,11 @@ pub struct BotConfig {
 }
 
 impl Config {
-    pub async fn load() -> Result<Config> {
-        let file = fs::read_to_string("config.toml")
+    pub async fn load(file: &Path) -> Result<Config> {
+        let file = fs::read_to_string(file)
             .await
             .context("Couldn't open file")?;
 
-        toml::from_str(&file).context("Couldn't parse file")
+        toml::from_str(&file).context("Couldn't parse file contents")
     }
 }

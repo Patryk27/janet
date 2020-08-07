@@ -3,9 +3,11 @@
 
 use anyhow::*;
 use std::sync::Arc;
+use structopt::StructOpt;
 use tokio::try_join;
 use utils::spawn_future;
 
+mod args;
 mod config;
 mod database;
 mod gitlab;
@@ -26,10 +28,15 @@ const LOGO: &str = r#"
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    let args: args::Args = StructOpt::from_args();
+
     let config = {
-        config::Config::load()
-            .await
-            .context("Couldn't load configuration from `config.toml`")?
+        config::Config::load(&args.config).await.with_context(|| {
+            format!(
+                "Couldn't load configuration from `{}`",
+                args.config.display()
+            )
+        })?
     };
 
     log::init(config.log).context("Couldn't initialize log")?;
