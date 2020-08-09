@@ -20,7 +20,7 @@ use tokio::try_join;
 /// events.
 ///
 /// Returns a `Future` that must be `.await`ed for Janet to work.
-pub async fn spawn(ctxt: TaskContext, cmds: CommandRx, evts: EventRx) -> Result<()> {
+pub async fn spawn(ctxt: SystemDeps, cmds: CommandRx, evts: EventRx) -> Result<()> {
     let ctxt = Arc::new(ctxt);
 
     try_join!(

@@ -23,3 +23,14 @@ mod project_name;
 mod project_ptr;
 mod ptr_context;
 mod url;
+
+use nom::IResult;
+
+pub trait Atom: Sized {
+    fn parse(i: &str) -> IResult<&str, Self>;
+
+    #[cfg(test)]
+    fn parse_unwrap(i: &str) -> Self {
+        Self::parse(i).unwrap().1
+    }
+}

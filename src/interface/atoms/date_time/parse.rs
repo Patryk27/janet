@@ -1,10 +1,10 @@
-use crate::interface::{DateTime, ParseAtom};
+use crate::interface::{Atom, DateTime};
 use nom::branch::alt;
 use nom::bytes::complete::tag;
 use nom::combinator::opt;
 use nom::IResult;
 
-impl ParseAtom for DateTime {
+impl Atom for DateTime {
     fn parse(i: &str) -> IResult<&str, Self> {
         alt((today, tomorrow))(i)
     }

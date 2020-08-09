@@ -1,9 +1,9 @@
-use crate::interface::{Name, ParseAtom};
+use crate::interface::{Atom, Name};
 use nom::bytes::complete::take_while1;
 use nom::combinator::map;
 use nom::IResult;
 
-impl ParseAtom for Name {
+impl Atom for Name {
     fn parse(i: &str) -> IResult<&str, Self> {
         map(
             take_while1(|c: char| c.is_alphanumeric() || c == '-' || c == '_'),

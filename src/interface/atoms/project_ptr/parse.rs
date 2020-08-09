@@ -1,12 +1,12 @@
 use crate::gitlab::{NamespaceName, ProjectId, ProjectName};
-use crate::interface::{Name, NamespacePtr, ParseAtom, ProjectPtr};
+use crate::interface::{Atom, Name, NamespacePtr, ProjectPtr};
 use nom::branch::alt;
 use nom::character::complete::char;
 use nom::combinator::map;
 use nom::multi::separated_list1;
 use nom::IResult;
 
-impl ParseAtom for ProjectPtr {
+impl Atom for ProjectPtr {
     fn parse(i: &str) -> IResult<&str, Self> {
         alt((id, name))(i)
     }

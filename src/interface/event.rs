@@ -5,6 +5,7 @@ use tokio::sync::mpsc;
 pub type EventTx = mpsc::UnboundedSender<Event>;
 pub type EventRx = mpsc::UnboundedReceiver<Event>;
 
+/// A generic event accepted by Janet.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 #[serde(tag = "type", content = "payload")]
 pub enum Event {

@@ -6,7 +6,13 @@ use crate::gitlab::{
     WebhookNoteAttrs,
     WebhookProject,
 };
-use crate::interface::{Command, Event, MergeRequestPtr, ProjectPtr};
+use crate::interface::{
+    Event,
+    MergeRequestCommand,
+    MergeRequestCommandContext,
+    MergeRequestPtr,
+    ProjectPtr,
+};
 use crate::system::System;
 use anyhow::Result;
 use std::sync::Arc;
@@ -104,15 +110,16 @@ impl GitLabWebhookHandler {
         // TODO hard-coded 7
         let cmd = cmd[7..].trim();
 
-        let user = object_attributes.author_id;
-        let discussion = object_attributes.discussion_id;
-
-        let merge_request_ptr = MergeRequestPtr::Iid {
-            project: Some(ProjectPtr::Id(project.id)),
-            merge_request: merge_request.iid,
+        let ctxt = MergeRequestCommandContext {
+            user: object_attributes.author_id,
+            merge_request: MergeRequestPtr::Iid {
+                project: Some(ProjectPtr::Id(project.id)),
+                merge_request: merge_request.iid,
+            },
+            discussion: object_attributes.discussion_id.clone(),
         };
 
-        match Command::parse(user, merge_request_ptr, discussion.clone(), cmd) {
+        match MergeRequestCommand::parse(ctxt, cmd) {
             Ok(cmd) => {
                 self.system.send_cmd(cmd);
             }
@@ -125,14 +132,17 @@ impl GitLabWebhookHandler {
                 );
 
                 let _: Result<()> = try {
-                    let username = self.gitlab.user(user).await?.username;
-
-                    self
+                    let username = self
                         .gitlab
+                        .user(object_attributes.author_id)
+                        .await?
+                        .username;
+
+                    self.gitlab
                         .create_merge_request_note(
                             project.id,
                             merge_request.iid,
-                            &discussion,
+                            &object_attributes.discussion_id,
                             format!("@{}: sorry, I'm not sure what you mean - could you please remove your comment and re-send it?", username),
                         )
                         .await?;

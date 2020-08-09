@@ -49,7 +49,7 @@ def test(gitlab: GitLab, janet: Janet):
             },
             "object_attributes": {
                 "author_id": author_id,
-                "description": "@janet +depends on !2",
+                "description": "@janet depends on !2",
                 "discussion_id": f"abcd{author_id}",
             }
         })

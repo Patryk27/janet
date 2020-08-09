@@ -6,9 +6,9 @@ use std::future::Future;
 use std::sync::Arc;
 use tokio::sync::mpsc;
 
-use self::task::*;
+pub(self) use self::deps::*;
 
-mod task;
+mod deps;
 mod tasks;
 mod utils;
 
@@ -23,7 +23,7 @@ impl System {
         db: Database,
         gitlab: Arc<GitLabClient>,
     ) -> (Arc<Self>, impl Future<Output = Result<()>>) {
-        let ctxt = TaskContext { db, gitlab };
+        let ctxt = SystemDeps { db, gitlab };
 
         let (cmd_tx, cmd_rx) = mpsc::unbounded_channel();
         let (evt_tx, evt_rx) = mpsc::unbounded_channel();

@@ -1,17 +1,15 @@
-use self::handle_merge_request::*; // TODO use star import everywhere
-
-mod handle_merge_request;
+mod merge_request;
 
 use crate::interface::Command;
-use crate::system::task::TaskContext;
+use crate::system::SystemDeps;
 use anyhow::*;
 use std::sync::Arc;
 
-#[tracing::instrument(skip(ctxt))]
-pub async fn handle_command(ctxt: Arc<TaskContext>, cmd: Command) {
+#[tracing::instrument(skip(deps))]
+pub async fn handle_command(deps: Arc<SystemDeps>, cmd: Command) {
     tracing::debug!("Handling command");
 
-    match try_handle_command(ctxt, cmd).await {
+    match try_handle_command(deps, cmd).await {
         Ok(_) => {
             tracing::info!("Command handled");
         }
@@ -22,10 +20,10 @@ pub async fn handle_command(ctxt: Arc<TaskContext>, cmd: Command) {
     }
 }
 
-async fn try_handle_command(tctxt: Arc<TaskContext>, cmd: Command) -> Result<()> {
-    tctxt.db.logs().add((&cmd).into()).await?;
+pub async fn try_handle_command(deps: Arc<SystemDeps>, cmd: Command) -> Result<()> {
+    deps.db.logs().add((&cmd).into()).await?;
 
     match cmd {
-        Command::MergeRequest { ctxt, cmd } => handle_merge_request(tctxt, ctxt, cmd).await,
+        Command::MergeRequest { ctxt, cmd } => merge_request::handle(&deps, ctxt, cmd).await,
     }
 }

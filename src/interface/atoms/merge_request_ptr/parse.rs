@@ -1,12 +1,12 @@
 use crate::gitlab::MergeRequestIid;
-use crate::interface::{MergeRequestPtr, ParseAtom, ProjectPtr};
+use crate::interface::{Atom, MergeRequestPtr, ProjectPtr};
 use nom::branch::alt;
 use nom::bytes::complete::tag;
 use nom::combinator::{map, opt};
 use nom::sequence::tuple;
 use nom::IResult;
 
-impl ParseAtom for MergeRequestPtr {
+impl Atom for MergeRequestPtr {
     fn parse(i: &str) -> IResult<&str, Self> {
         alt((id, url))(i)
     }
@@ -26,7 +26,7 @@ fn id(i: &str) -> IResult<&str, MergeRequestPtr> {
 }
 
 fn url(i: &str) -> IResult<&str, MergeRequestPtr> {
-    map(ParseAtom::parse, MergeRequestPtr::Url)(i)
+    map(Atom::parse, MergeRequestPtr::Url)(i)
 }
 
 #[cfg(test)]

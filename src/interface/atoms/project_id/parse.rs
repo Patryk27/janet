@@ -1,9 +1,9 @@
 use crate::gitlab::ProjectId;
-use crate::interface::{Id, ParseAtom};
+use crate::interface::{Atom, Id};
 use nom::combinator::map;
 use nom::IResult;
 
-impl ParseAtom for ProjectId {
+impl Atom for ProjectId {
     fn parse(i: &str) -> IResult<&str, Self> {
         map(Id::parse, |id| Self::new(id.into_inner()))(i)
     }

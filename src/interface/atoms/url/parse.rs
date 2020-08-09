@@ -1,4 +1,4 @@
-use crate::interface::ParseAtom;
+use crate::interface::Atom;
 use nom::bytes::complete::take_till1;
 use nom::error::ErrorKind;
 use nom::Err;
@@ -6,7 +6,7 @@ use nom::IResult;
 use std::str::FromStr;
 use url::Url;
 
-impl ParseAtom for Url {
+impl Atom for Url {
     fn parse(i: &str) -> IResult<&str, Self> {
         let i2 = <&str>::clone(&i);
         let (i, url) = url(i)?;
@@ -29,7 +29,7 @@ mod tests {
 
     fn assert(input: &str) {
         let expected = Ok(("", Url::from_str(input).unwrap()));
-        let actual = ParseAtom::parse(input);
+        let actual = Atom::parse(input);
 
         assert_eq!(expected, actual, "Input: {}", input);
     }

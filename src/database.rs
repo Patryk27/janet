@@ -11,7 +11,7 @@ use tokio::sync::Mutex;
 
 #[derive(Clone)]
 pub struct Database {
-    conn: Arc<Mutex<SqliteConnection>>, // TODO move arc outside?
+    conn: Arc<Mutex<SqliteConnection>>,
 }
 
 impl Database {

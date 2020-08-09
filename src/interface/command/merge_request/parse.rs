@@ -1,16 +1,7 @@
-use super::action;
-use crate::gitlab::{DiscussionId, UserId};
-use crate::interface::{
-    CommandAction,
-    MergeRequestCommand,
-    MergeRequestCommandContext,
-    MergeRequestPtr,
-    ParseAtom,
-};
+use crate::interface::{Atom, CommandAction, DateTime, MergeRequestCommand, MergeRequestPtr};
 use nom::branch::alt;
 use nom::bytes::complete::{tag_no_case, take_while};
-use nom::character::complete::char;
-use nom::combinator::{all_consuming, value};
+use nom::combinator::all_consuming;
 use nom::IResult;
 
 pub fn parse(cmd: &str) -> IResult<&str, MergeRequestCommand> {
@@ -25,7 +16,7 @@ fn hi(i: &str) -> IResult<&str, MergeRequestCommand> {
 }
 
 fn manage_dependency(i: &str) -> IResult<&str, MergeRequestCommand> {
-    let (i, action) = action(i)?;
+    let (i, action) = CommandAction::parse(i)?;
     let (i, _) = tag_no_case("depends on ")(i)?;
     let (i, dependency) = MergeRequestPtr::parse(i)?;
 
@@ -36,7 +27,7 @@ fn manage_dependency(i: &str) -> IResult<&str, MergeRequestCommand> {
 }
 
 fn manage_reminder(i: &str) -> IResult<&str, MergeRequestCommand> {
-    let (i, action) = action(i)?;
+    let (i, action) = CommandAction::parse(i)?;
     let (i, _) = tag_no_case("remind me ")(i)?;
     let (i, remind_at) = DateTime::parse(i)?;
 
@@ -53,7 +44,7 @@ mod tests {
 
     fn assert(expected: MergeRequestCommand, input: impl AsRef<str>) {
         let input = input.as_ref();
-        let actual = parse(input).expect(&format!("Input: {}", input));
+        let actual = parse(input).expect(&format!("Input: {}", input)).1;
 
         assert_eq!(expected, actual, "Input: {}", input);
     }
@@ -90,7 +81,7 @@ mod tests {
             use super::*;
             use test_case::test_case;
 
-            #[test_case("+", CommandAction::Add ; "add")]
+            #[test_case("", CommandAction::Add ; "add")]
             #[test_case("-", CommandAction::Remove ; "remove")]
             fn of_url(prefix: &str, action: CommandAction) {
                 assert(
@@ -112,7 +103,7 @@ mod tests {
                 use super::*;
                 use test_case::test_case;
 
-                #[test_case("+", CommandAction::Add ; "add")]
+                #[test_case("", CommandAction::Add ; "add")]
                 #[test_case("-", CommandAction::Remove ; "remove")]
                 fn without_project(prefix: &str, action: CommandAction) {
                     assert(
@@ -127,7 +118,7 @@ mod tests {
                     );
                 }
 
-                #[test_case("+", CommandAction::Add ; "add")]
+                #[test_case("", CommandAction::Add ; "add")]
                 #[test_case("-", CommandAction::Remove ; "remove")]
                 fn with_project(prefix: &str, action: CommandAction) {
                     assert(

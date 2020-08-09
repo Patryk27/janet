@@ -1,6 +1,6 @@
 use crate::database::{Id, MergeRequest, MergeRequestDependency};
 use crate::gitlab::{DiscussionId, MergeRequestIid, ProjectId, UserId};
-use crate::system::task::TaskContext;
+use crate::system::SystemDeps;
 use anyhow::*;
 use std::sync::Arc;
 
@@ -8,20 +8,20 @@ use std::sync::Arc;
 ///
 /// `verb` specifies what happened to the merge request (e.g. <<it got>>
 /// `closed`) and it's passed verbatim to the message sent to user.
-pub async fn handle_merge_request_state_changed(
-    ctxt: Arc<TaskContext>,
+pub async fn handle(
+    deps: Arc<SystemDeps>,
     project: ProjectId,
     merge_request: MergeRequestIid,
     verb: &'static str,
 ) -> Result<()> {
     // Since Janet listens for events from all merge requests, it might happen (and
     // will happen) that we'll receive an event about a merge request we don't care
-    // about (e.g. for a merge request no one has `+depends on` yet).
+    // about (e.g. for a merge request no one has `depends on` yet).
     //
     // When that happens, we just want to silently ignore the event - and that's
     // what happens here: we load merge request from our database and when it's not
     // present, we ignore the event.
-    let merge_request = if let Some(merge_request) = ctxt
+    let merge_request = if let Some(merge_request) = deps
         .db
         .merge_requests()
         .find_by_external_id(project.inner() as _, merge_request.inner() as _)
@@ -32,7 +32,7 @@ pub async fn handle_merge_request_state_changed(
         return Ok(());
     };
 
-    notify_merge_request_dependencies(&ctxt, merge_request, verb).await?;
+    notify_merge_request_dependencies(&deps, merge_request, verb).await?;
 
     Ok(())
 }
@@ -40,32 +40,32 @@ pub async fn handle_merge_request_state_changed(
 /// Checks dependencies for given merge request and dispatches notes for
 /// interested users.
 async fn notify_merge_request_dependencies(
-    ctxt: &TaskContext,
+    deps: &SystemDeps,
     merge_request: Id<MergeRequest>,
     verb: &'static str,
 ) -> Result<()> {
-    let deps = ctxt
+    let mr_deps = deps
         .db
         .merge_request_dependencies()
         .find_by_dep(merge_request)
         .await?;
 
-    for dep in deps {
-        notify_merge_request_dependency(ctxt, verb, dep).await;
+    for mr_dep in mr_deps {
+        notify_merge_request_dependency(deps, verb, mr_dep).await;
     }
 
     Ok(())
 }
 
-#[tracing::instrument(skip(ctxt))]
+#[tracing::instrument(skip(deps))]
 async fn notify_merge_request_dependency(
-    ctxt: &TaskContext,
+    deps: &SystemDeps,
     verb: &'static str,
-    dep: MergeRequestDependency,
+    mr_dep: MergeRequestDependency,
 ) {
     tracing::trace!("Sending note for merge request dependency");
 
-    if let Err(err) = try_notify_merge_request_dependency(ctxt, verb, dep).await {
+    if let Err(err) = try_notify_merge_request_dependency(deps, verb, mr_dep).await {
         // TODO when someone removes the discussion, this invocation will return 404 -
         //      we should detect it and remove merge request dependency from the
         //      database not to spam the API
@@ -78,29 +78,29 @@ async fn notify_merge_request_dependency(
 }
 
 async fn try_notify_merge_request_dependency(
-    ctxt: &TaskContext,
+    deps: &SystemDeps,
     verb: &'static str,
-    dep: MergeRequestDependency,
+    mr_dep: MergeRequestDependency,
 ) -> Result<()> {
-    let src_merge_request = ctxt
+    let src_merge_request = deps
         .db
         .merge_requests()
-        .get(dep.src_merge_request_id)
+        .get(mr_dep.src_merge_request_id)
         .await?;
 
-    let dst_merge_request = ctxt
+    let dst_merge_request = deps
         .db
         .merge_requests()
-        .get(dep.dst_merge_request_id)
+        .get(mr_dep.dst_merge_request_id)
         .await?;
 
-    let src_project = ctxt.db.projects().get(src_merge_request.project_id).await?;
-    let dst_project = ctxt.db.projects().get(dst_merge_request.project_id).await?;
-    let user = ctxt.db.users().get(dep.user_id).await?;
+    let src_project = deps.db.projects().get(src_merge_request.project_id).await?;
+    let dst_project = deps.db.projects().get(dst_merge_request.project_id).await?;
+    let user = deps.db.users().get(mr_dep.user_id).await?;
 
-    let gl_user = ctxt.gitlab.user(UserId::new(user.ext_id as _)).await?;
+    let gl_user = deps.gitlab.user(UserId::new(user.ext_id as _)).await?;
 
-    let gl_dst_merge_request = ctxt
+    let gl_dst_merge_request = deps
         .gitlab
         .merge_request(
             ProjectId::new(dst_project.ext_id as _),
@@ -113,11 +113,11 @@ async fn try_notify_merge_request_dependency(
         gl_user.username, gl_dst_merge_request.web_url, verb,
     );
 
-    ctxt.gitlab
+    deps.gitlab
         .create_merge_request_note(
             ProjectId::new(src_project.ext_id as _),
             MergeRequestIid::new(src_merge_request.iid as _),
-            &DiscussionId::new(dep.discussion_ext_id),
+            &DiscussionId::new(mr_dep.discussion_ext_id),
             note,
         )
         .await?;
@@ -128,24 +128,20 @@ async fn try_notify_merge_request_dependency(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::database as db;
+    use crate::gitlab as gl;
     use crate::utils::for_tests::*;
-    use crate::{database as db, gitlab as gl};
 
     mod given_untracked_merge_request {
         use super::*;
 
         #[tokio::test(threaded_scheduler)]
         async fn does_nothing() {
-            let ctxt = TaskContext::mock().await;
+            let deps = SystemDeps::mock().await;
 
-            handle_merge_request_state_changed(
-                ctxt,
-                ProjectId::new(123),
-                MergeRequestIid::new(4),
-                "merged",
-            )
-            .await
-            .unwrap();
+            handle(deps, ProjectId::new(123), MergeRequestIid::new(4), "merged")
+                .await
+                .unwrap();
         }
     }
 
@@ -154,23 +150,23 @@ mod tests {
 
         #[tokio::test(threaded_scheduler)]
         async fn dispatches_notifications_to_interested_users() {
-            let ctxt = TaskContext::mock().await;
+            let deps = SystemDeps::mock().await;
 
-            let user_id = ctxt
+            let user_id = deps
                 .db
                 .users()
                 .add(&db::NewUser { ext_id: 100 })
                 .await
                 .unwrap();
 
-            let project_id = ctxt
+            let project_id = deps
                 .db
                 .projects()
                 .add(&db::NewProject { ext_id: 123 })
                 .await
                 .unwrap();
 
-            let src_merge_request_id = ctxt
+            let src_merge_request_id = deps
                 .db
                 .merge_requests()
                 .add(&db::NewMergeRequest {
@@ -182,7 +178,7 @@ mod tests {
                 .await
                 .unwrap();
 
-            let dst_merge_request_id = ctxt
+            let dst_merge_request_id = deps
                 .db
                 .merge_requests()
                 .add(&db::NewMergeRequest {
@@ -194,7 +190,7 @@ mod tests {
                 .await
                 .unwrap();
 
-            ctxt.db
+            deps.db
                 .merge_request_dependencies()
                 .add(&db::NewMergeRequestDependency {
                     user_id,
@@ -212,8 +208,8 @@ mod tests {
             // Asserting this call is a no-op allows us to ensure that we didn't get `src`
             // and `dst` mixed up somewhere in the system.
             {
-                handle_merge_request_state_changed(
-                    ctxt.clone(),
+                handle(
+                    deps.clone(),
                     ProjectId::new(123),
                     MergeRequestIid::new(1),
                     "merged",
@@ -241,14 +237,9 @@ mod tests {
                     "@someone related merge request http://merge-request has been merged",
                 );
 
-                handle_merge_request_state_changed(
-                    ctxt,
-                    ProjectId::new(123),
-                    MergeRequestIid::new(2),
-                    "merged",
-                )
-                .await
-                .unwrap();
+                handle(deps, ProjectId::new(123), MergeRequestIid::new(2), "merged")
+                    .await
+                    .unwrap();
 
                 user_mock.assert();
                 merge_request_mock.assert();

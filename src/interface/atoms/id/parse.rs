@@ -1,9 +1,9 @@
-use crate::interface::{Id, ParseAtom};
+use crate::interface::{Atom, Id};
 use nom::character::complete::digit1;
 use nom::combinator::map_res;
 use nom::IResult;
 
-impl ParseAtom for Id {
+impl Atom for Id {
     fn parse(i: &str) -> IResult<&str, Self> {
         let (i, id) = map_res(digit1, |num: &str| num.parse::<usize>())(i)?;
         Ok((i, Self::new(id)))

@@ -1,17 +1,17 @@
-use self::handle_merge_request_state_changed::handle_merge_request_state_changed;
+use self::merge_request_state_changed::handle;
 
-mod handle_merge_request_state_changed;
+mod merge_request_state_changed;
 
 use crate::interface::Event;
-use crate::system::task::TaskContext;
+use crate::system::SystemDeps;
 use anyhow::*;
 use std::sync::Arc;
 
-#[tracing::instrument(skip(ctxt))]
-pub async fn handle_event(ctxt: Arc<TaskContext>, evt: Event) {
+#[tracing::instrument(skip(deps))]
+pub async fn handle_event(deps: Arc<SystemDeps>, evt: Event) {
     tracing::debug!("Handling event");
 
-    match try_handle_event(ctxt, evt).await {
+    match try_handle_event(deps, evt).await {
         Ok(_) => {
             tracing::info!("Event handled");
         }
@@ -22,29 +22,29 @@ pub async fn handle_event(ctxt: Arc<TaskContext>, evt: Event) {
     }
 }
 
-async fn try_handle_event(ctxt: Arc<TaskContext>, evt: Event) -> Result<()> {
-    ctxt.db.logs().add((&evt).into()).await?;
+async fn try_handle_event(deps: Arc<SystemDeps>, evt: Event) -> Result<()> {
+    deps.db.logs().add((&evt).into()).await?;
 
     match evt {
         Event::MergeRequestClosed {
             project,
             merge_request,
         } => {
-            handle_merge_request_state_changed(ctxt, project, merge_request, "closed").await?;
+            handle(deps, project, merge_request, "closed").await?;
         }
 
         Event::MergeRequestMerged {
             project,
             merge_request,
         } => {
-            handle_merge_request_state_changed(ctxt, project, merge_request, "merged").await?;
+            handle(deps, project, merge_request, "merged").await?;
         }
 
         Event::MergeRequestReopened {
             project,
             merge_request,
         } => {
-            handle_merge_request_state_changed(ctxt, project, merge_request, "reopened").await?;
+            handle(deps, project, merge_request, "reopened").await?;
         }
     }
 
