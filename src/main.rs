@@ -5,7 +5,6 @@ use anyhow::*;
 use std::sync::Arc;
 use structopt::StructOpt;
 use tokio::try_join;
-use utils::spawn_future;
 
 mod args;
 mod config;
@@ -79,9 +78,6 @@ async fn main() -> Result<()> {
         tracing::info!("Initializing HTTP server");
         http::init(config.http, gitlab_webhook_handler)
     };
-
-    let system_task = spawn_future(system_task);
-    let http_task = spawn_future(http_task);
 
     match try_join!(system_task, http_task) {
         Ok(_) => {

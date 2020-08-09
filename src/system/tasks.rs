@@ -11,8 +11,7 @@ mod handle_event;
 mod handle_events;
 
 use crate::interface::{CommandRx, EventRx};
-use crate::system::task::TaskContext;
-use crate::utils::spawn_future;
+use crate::system::SystemDeps;
 use anyhow::*;
 use std::sync::Arc;
 use tokio::try_join;
@@ -25,8 +24,8 @@ pub async fn spawn(ctxt: TaskContext, cmds: CommandRx, evts: EventRx) -> Result<
     let ctxt = Arc::new(ctxt);
 
     try_join!(
-        spawn_future(handle_commands(ctxt.clone(), cmds)),
-        spawn_future(handle_events(ctxt, evts)),
+        handle_commands(ctxt.clone(), cmds),
+        handle_events(ctxt, evts),
     )
     .map(drop)
 }
