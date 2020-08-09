@@ -22,7 +22,7 @@ let
   naersk-src = import (
     builtins.fetchGit {
       url = "https://github.com/nmattia/naersk";
-      rev = "d5a23213d561893cebdf0d251502430334673036";
+      rev = "dcee40445cfe301ced2d1b11290d6a94ff3aadb9";
     }
   );
 
