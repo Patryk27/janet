@@ -16,7 +16,7 @@ CREATE TABLE users
     created_at DATETIME NOT NULL DEFAULT (datetime('now', 'localtime'))
 ) WITHOUT ROWID;
 
-CREATE UNIQUE INDEx idx_users_ext_id ON users (ext_id);
+CREATE UNIQUE INDEX idx_users_ext_id ON users (ext_id);
 
 --
 
