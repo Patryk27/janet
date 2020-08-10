@@ -1,0 +1,22 @@
+[package]
+name = "lib_system"
+version = "0.0.0"
+authors = ["Patryk Wychowaniec <wychowaniec.patryk@gmail.com>"]
+edition = "2018"
+
+[features]
+e2e = ["lib_e2e"]
+
+[dependencies]
+lib_database = { path = "../database" }
+lib_e2e = { path = "../e2e", optional = true }
+lib_gitlab = { path = "../gitlab" }
+lib_interface = { path = "../interface" }
+
+anyhow = "1.0"
+chrono = { version = "0.4", features = ["serde"] }
+serde_json = "1.0"
+thiserror = "1.0"
+tokio = { version = "0.2", features = ["full"] }
+tracing = "0.1"
+tracing-futures = "0.2"

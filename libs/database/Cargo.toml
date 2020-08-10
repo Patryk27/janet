@@ -1,0 +1,16 @@
+[package]
+name = "lib_database"
+version = "0.0.0"
+authors = ["Patryk Wychowaniec <wychowaniec.patryk@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+anyhow = "1.0"
+chrono = { version = "0.4", features = ["serde"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sqlx = { git = "https://github.com/Patryk27/sqlx", rev = "fe1570c74e39614a70426cc4acddd3badfad4faa", default-features = false, features = ["chrono", "macros", "runtime-tokio", "sqlite"] }
+tokio = { version = "0.2", features = ["full"] }
+tracing = "0.1"
+tracing-futures = "0.2"
+uuid = { version = "0.8", features = ["serde", "v4"] }

@@ -13,16 +13,8 @@ let
     sqlite
   ];
 
-  # TODO extract to `tests/deps.nix` maybe?
-  test-deps = with pkgs; [
-    (python3.withPackages (pp: with pp; [
-      jsonpickle
-      requests
-    ]))
-  ];
-
 in
   pkgs.mkShell {
-    buildInputs = app-deps ++ dev-deps ++ test-deps;
+    buildInputs = app-deps ++ dev-deps;
     LD_LIBRARY_PATH="${pkgs.openssl.out}/lib";
   }

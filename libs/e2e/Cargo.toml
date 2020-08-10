@@ -1,0 +1,15 @@
+[package]
+name = "lib_e2e"
+version = "0.0.0"
+authors = ["Patryk Wychowaniec <wychowaniec.patryk@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+lib_gitlab = { path = "../gitlab", features = ["mock"] }
+
+anyhow = "1.0"
+indoc = "1.0"
+reqwest = { version = "0.10", features = ["json"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "0.2", features = ["full"] }
