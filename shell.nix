@@ -5,6 +5,7 @@ let
     lld
     openssl
     pkg-config
+    rust
   ];
 
   dev-deps = with pkgs; [
