@@ -10,6 +10,7 @@ pub use self::{
     project_ptr::*,
     ptr_context::*,
     url::*,
+    usize::*,
 };
 
 mod date_time;
@@ -23,6 +24,7 @@ mod project_name;
 mod project_ptr;
 mod ptr_context;
 mod url;
+mod usize;
 
 use nom::IResult;
 
