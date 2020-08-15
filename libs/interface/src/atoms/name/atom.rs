@@ -15,29 +15,20 @@ impl Atom for Name {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use test_case::test_case;
 
-    fn assert(input: &str) {
-        let expected = Ok(("", Name::new(input)));
-        let actual = Name::parse(input);
-
-        assert_eq!(expected, actual, "Input: {}", input);
-    }
-
-    #[test]
-    fn test() {
-        assert("a");
-        assert("1");
-
-        assert("foo");
-        assert("foo123");
-        assert("123foo");
-
-        assert("foo-123");
-        assert("foo_123");
-
-        assert("123-foo");
-        assert("123_foo");
-
-        assert("FoFo");
+    #[test_case("a" => Name::new("a") ; "letter")]
+    #[test_case("a1" => Name::new("a1") ; "letter with number")]
+    #[test_case("1" => Name::new("1") ; "number")]
+    #[test_case("1a" => Name::new("1a") ; "number with letter")]
+    #[test_case("-" => Name::new("-") ; "dash")]
+    #[test_case("_" => Name::new("_") ; "underscore")]
+    #[test_case("foo" => Name::new("foo") ; "word")]
+    #[test_case("foo123" => Name::new("foo123") ; "word with number")]
+    #[test_case("123foo" => Name::new("123foo") ; "number with word")]
+    #[test_case("foo-123" => Name::new("foo-123") ; "word with number separated with dash")]
+    #[test_case("foo_123" => Name::new("foo_123") ; "word with number separated with underscore")]
+    fn test(input: &str) -> Name {
+        Name::parse_unwrap(input)
     }
 }
