@@ -2,7 +2,7 @@ use crate::{Atom, CommandAction, DateTime, MergeRequestCommand, MergeRequestPtr}
 use nom::branch::alt;
 use nom::bytes::complete::{tag_no_case, take_while};
 use nom::combinator::all_consuming;
-use nom::IResult;
+use nom::{IResult, Parser};
 
 pub fn parse(cmd: &str) -> IResult<&str, MergeRequestCommand> {
     all_consuming(alt((hi, manage_dependency, manage_reminder)))(cmd)
@@ -16,14 +16,16 @@ fn hi(i: &str) -> IResult<&str, MergeRequestCommand> {
 }
 
 fn manage_dependency(i: &str) -> IResult<&str, MergeRequestCommand> {
-    let (i, action) = CommandAction::parse(i)?;
-    let (i, _) = tag_no_case("depends on ")(i)?;
-    let (i, dependency) = MergeRequestPtr::parse(i)?;
-
-    Ok((
-        i,
-        MergeRequestCommand::ManageDependency { action, dependency },
-    ))
+    CommandAction::parse
+        .and(tag_no_case("depends on "))
+        .and(MergeRequestPtr::parse)
+        .map(
+            |((action, _), dependency)| MergeRequestCommand::ManageDependency {
+                action,
+                dependency,
+            },
+        )
+        .parse(i)
 }
 
 fn manage_reminder(i: &str) -> IResult<&str, MergeRequestCommand> {

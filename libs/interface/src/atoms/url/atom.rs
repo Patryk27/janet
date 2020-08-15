@@ -1,21 +1,13 @@
 use crate::Atom;
 use nom::bytes::complete::take_till1;
-use nom::error::ErrorKind;
-use nom::Err;
+use nom::combinator::map_res;
 use nom::IResult;
 use std::str::FromStr;
 use url::Url;
 
 impl Atom for Url {
     fn parse(i: &str) -> IResult<&str, Self> {
-        let i2 = <&str>::clone(&i);
-        let (i, url) = url(i)?;
-
-        if let Ok(url) = Url::from_str(url) {
-            Ok((i, url))
-        } else {
-            Err(Err::Error((i2, ErrorKind::Verify)))
-        }
+        map_res(url, Url::from_str)(i)
     }
 }
 

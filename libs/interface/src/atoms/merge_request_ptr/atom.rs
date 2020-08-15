@@ -1,10 +1,9 @@
 use crate::{Atom, MergeRequestPtr, ProjectPtr};
 use lib_gitlab::MergeRequestIid;
 use nom::branch::alt;
-use nom::bytes::complete::tag;
-use nom::combinator::{map, opt};
-use nom::sequence::tuple;
-use nom::IResult;
+use nom::character::complete::char;
+use nom::combinator::opt;
+use nom::{IResult, Parser};
 
 impl Atom for MergeRequestPtr {
     fn parse(i: &str) -> IResult<&str, Self> {
@@ -13,20 +12,18 @@ impl Atom for MergeRequestPtr {
 }
 
 fn id(i: &str) -> IResult<&str, MergeRequestPtr> {
-    let (i, (project, _, merge_request)) =
-        tuple((opt(ProjectPtr::parse), tag("!"), MergeRequestIid::parse))(i)?;
-
-    Ok((
-        i,
-        MergeRequestPtr::Iid {
+    opt(ProjectPtr::parse)
+        .and(char('!'))
+        .and(MergeRequestIid::parse)
+        .map(|((project, _), merge_request)| MergeRequestPtr::Iid {
             project,
             merge_request,
-        },
-    ))
+        })
+        .parse(i)
 }
 
 fn url(i: &str) -> IResult<&str, MergeRequestPtr> {
-    map(Atom::parse, MergeRequestPtr::Url)(i)
+    Atom::parse.map(MergeRequestPtr::Url).parse(i)
 }
 
 #[cfg(test)]
