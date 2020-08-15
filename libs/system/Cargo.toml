@@ -4,12 +4,8 @@ version = "0.0.0"
 authors = ["Patryk Wychowaniec <wychowaniec.patryk@gmail.com>"]
 edition = "2018"
 
-[features]
-e2e = ["lib_e2e"]
-
 [dependencies]
 lib_database = { path = "../database" }
-lib_e2e = { path = "../e2e", optional = true }
 lib_gitlab = { path = "../gitlab" }
 lib_interface = { path = "../interface" }
 

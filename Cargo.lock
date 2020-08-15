@@ -1168,7 +1168,6 @@ dependencies = [
  "anyhow",
  "chrono",
  "lib_database",
- "lib_e2e",
  "lib_gitlab",
  "lib_interface",
  "serde_json",
