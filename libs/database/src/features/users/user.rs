@@ -14,6 +14,6 @@ pub struct User {
 
 impl User {
     pub fn ext_id(&self) -> gl::UserId {
-        gl::UserId::new(1)
+        gl::UserId::new(self.ext_id as _)
     }
 }

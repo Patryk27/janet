@@ -1,7 +1,7 @@
 use lib_gitlab::{MergeRequestIid, ProjectId};
 use serde::Serialize;
 
-/// A generic event accepted by Janet.
+/// A generic event accepted by Janet
 #[derive(Clone, Debug, Serialize)]
 #[serde(tag = "type", content = "payload")]
 pub enum Event {

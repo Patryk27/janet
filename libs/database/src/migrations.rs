@@ -4,6 +4,7 @@ use sqlx::SqliteConnection;
 const MIGRATIONS: &[&str] = &[
     include_str!("migrations/01.sql"),
     include_str!("migrations/02.sql"),
+    include_str!("migrations/03.sql"),
 ];
 
 pub async fn run(conn: &mut SqliteConnection) -> Result<()> {

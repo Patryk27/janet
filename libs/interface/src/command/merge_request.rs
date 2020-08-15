@@ -4,13 +4,14 @@ use crate::{Command, CommandAction, DateTime, InterfaceError, InterfaceResult, M
 use lib_gitlab::{DiscussionId, UserId};
 use serde::Serialize;
 
-/// A command done from the context of a merge request.
+/// A command issued from the context of a merge request
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 #[serde(tag = "type", content = "payload")]
 pub enum MergeRequestCommand {
     /// E.g.:
     ///
     /// - `hi`
+    /// - `hi!!!`
     Hi,
 
     /// E.g.:
@@ -25,18 +26,22 @@ pub enum MergeRequestCommand {
     /// E.g.:
     ///
     /// - `remind me tomorrow`
-    /// - `-remind me yesterday`
+    /// - `remind in 3d: rebase it!`
     ManageReminder {
-        action: CommandAction,
+        message: Option<String>,
         remind_at: DateTime,
     },
 }
 
-/// Context for the merge request of a `MergeRequestCommand`.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct MergeRequestCommandContext {
+    /// User who issued the command
     pub user: UserId,
+
+    /// Merge request where the command was issued
     pub merge_request: MergeRequestPtr,
+
+    /// Discussion where the command was issued
     pub discussion: DiscussionId,
 }
 
