@@ -12,5 +12,5 @@ pkgs.naersk.buildPackage {
 
   doCheck = true;
 
-  cargoTestOptions = args: args ++ [ "--all" ];
+  cargoTestOptions = args: args ++ [ "--workspace" ];
 }

@@ -8,8 +8,10 @@ edition = "2018"
 lib_gitlab = { path = "../gitlab", features = ["mock"] }
 
 anyhow = "1.0"
+futures = "0.3"
 indoc = "1.0"
 reqwest = { version = "0.10", features = ["json"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+tempdir = "0.3"
 tokio = { version = "0.2", features = ["full"] }

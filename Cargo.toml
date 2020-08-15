@@ -1,5 +1,33 @@
+[package]
+name = "janet"
+version = "0.1.0"
+authors = ["Patryk Wychowaniec <wychowaniec.patryk@gmail.com>"]
+edition = "2018"
+
 [workspace]
 members = [
-    "apps/*",
     "libs/*",
 ]
+
+[dependencies]
+lib_database = { path = "libs/database" }
+lib_gitlab = { path = "libs/gitlab" }
+lib_interface = { path = "libs/interface" }
+lib_system = { path = "libs/system" }
+
+anyhow = "1.0"
+bytes = "0.5"
+reqwest = "0.10"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+structopt = "0.3"
+tokio = { version = "0.2", features = ["full"] }
+toml = "0.5"
+tracing = "0.1"
+tracing-futures = "0.2"
+tracing-gelf = "0.3"
+tracing-subscriber = "0.2"
+warp = "0.2"
+
+[dev-dependencies]
+lib_e2e = { path = "libs/e2e" }

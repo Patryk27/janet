@@ -10,26 +10,3 @@ pub struct SystemDeps {
     pub db: Database,
     pub gitlab: Arc<GitLabClient>,
 }
-
-#[cfg(test)]
-pub struct SystemDepsSpy {
-    pub gitlab: lib_gitlab::mock::GitLabMockServer,
-}
-
-impl SystemDeps {
-    #[cfg(test)]
-    pub async fn mock() -> (SystemDepsSpy, Arc<Self>) {
-        let (gitlab_server, gitlab_client) = GitLabClient::mock().await;
-
-        let spy = SystemDepsSpy {
-            gitlab: gitlab_server,
-        };
-
-        let deps = Arc::new(Self {
-            db: Database::mock().await,
-            gitlab: Arc::new(gitlab_client),
-        });
-
-        (spy, deps)
-    }
-}

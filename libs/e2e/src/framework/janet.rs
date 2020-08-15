@@ -3,6 +3,7 @@ use reqwest::Client;
 use serde::Serialize;
 use std::path::Path;
 use std::process::Stdio;
+use std::thread;
 use tokio::io::AsyncReadExt;
 use tokio::{process, time};
 
@@ -13,24 +14,24 @@ pub struct Janet {
 }
 
 impl Janet {
-    pub async fn start(config: impl AsRef<Path>) -> Self {
-        // TODO this path should automatically detect debug vs release
-        let process = Path::new("../../target/debug/janet");
+    pub async fn start(addr: impl AsRef<str>, config: impl AsRef<Path>) -> Result<Self> {
+        #[cfg(debug_assertions)]
+        let process = Path::new("target/debug/janet");
 
+        #[cfg(not(debug_assertions))]
+        let process = Path::new("target/release/janet");
+
+        let url = format!("http://{}", addr.as_ref());
         let config = config.as_ref();
 
-        // TODO this port should be random
-        let url = "http://127.0.0.1:10000".into();
-
         let child = process::Command::new(process)
-            .arg("-c")
+            .arg("--config")
             .arg(config)
             .arg("--sync")
             .stdout(Stdio::piped())
             .stdout(Stdio::piped())
             .spawn()
-            .with_context(|| format!("Couldn't launch Janet: {}", process.display()))
-            .unwrap();
+            .with_context(|| format!("Couldn't launch Janet: {}", process.display()))?;
 
         let this = Self {
             url,
@@ -38,8 +39,9 @@ impl Janet {
             client: Client::new(),
         };
 
-        this.wait_until_reachable().await;
-        this
+        this.wait_until_reachable().await?;
+
+        Ok(this)
     }
 
     pub async fn spoof_gitlab_webhook(&self, body: &impl Serialize) {
@@ -57,8 +59,8 @@ impl Janet {
             .unwrap();
     }
 
-    pub async fn kill(mut self) -> (String, String) {
-        self.child.kill().context("Couldn't kill Janet").unwrap();
+    pub async fn kill(&mut self) -> Result<(String, String)> {
+        self.child.kill()?;
 
         let stdout = if let Some(mut stream) = self.child.stdout.take() {
             let mut out = String::new();
@@ -66,8 +68,7 @@ impl Janet {
             stream
                 .read_to_string(&mut out)
                 .await
-                .context("Couldn't read Janet's stdout")
-                .unwrap();
+                .context("Couldn't read stdout")?;
 
             out
         } else {
@@ -80,23 +81,22 @@ impl Janet {
             stream
                 .read_to_string(&mut out)
                 .await
-                .context("Couldn't read Janet's stderr")
-                .unwrap();
+                .context("Couldn't read stderr")?;
 
             out
         } else {
             String::default()
         };
 
-        (stdout, stderr)
+        Ok((stdout, stderr))
     }
 
-    async fn wait_until_reachable(&self) {
+    async fn wait_until_reachable(&self) -> Result<()> {
         let mut i = 0usize;
 
         loop {
             if i > 500 {
-                panic!("Janet failed to start in time");
+                bail!("Janet failed to start in time");
             }
 
             time::delay_for(time::Duration::from_millis(10)).await;
@@ -113,11 +113,31 @@ impl Janet {
 
             i += 1;
         }
+
+        Ok(())
     }
 }
 
 impl Drop for Janet {
     fn drop(&mut self) {
-        let _ = self.child.kill();
+        futures::executor::block_on(async {
+            let (stdout, stderr) = self.kill().await.context("Couldn't kill Janet").unwrap();
+
+            if !stdout.is_empty() {
+                println!("===== Janet's stdout =====");
+                println!("{}", stdout);
+                println!();
+            }
+
+            if !stderr.is_empty() {
+                println!("===== Janet's stderr =====");
+                println!("{}", stderr);
+                println!();
+            }
+
+            if !thread::panicking() && stdout.contains("ERROR") {
+                panic!("Janet's logs contain an unexpected error");
+            }
+        });
     }
 }

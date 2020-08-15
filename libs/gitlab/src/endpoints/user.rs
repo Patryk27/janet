@@ -31,7 +31,6 @@ impl GitLabClient {
 }
 
 #[cfg(test)]
-#[cfg(feature = "mock")]
 mod tests {
     use super::*;
     use pretty_assertions as pa;

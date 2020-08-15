@@ -1,50 +1,87 @@
-use crate::framework::{Janet, CONFIG, TMP_DIR};
-use anyhow::Context;
+use crate::framework::{Janet, CONFIG};
+use anyhow::*;
 use lib_gitlab::mock::GitLabMockServer;
-use lib_gitlab::GitLabClient;
 use std::fmt;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use tempdir::TempDir;
 use tokio::fs;
+use tokio::net::TcpListener;
 
 pub struct TestContext {
+    pub temp: TempDir,
     pub gitlab: GitLabMockServer,
     pub janet: Janet,
 }
 
 impl TestContext {
-    pub async fn create() -> Self {
-        // Remove possible artifacts from the previous test; since the directory might
-        // not exist yet (e.g. if this is the first time we're running tests at this
-        // machine), no need to `.unwrap()` here
-        let _ = fs::remove_dir_all(TMP_DIR).await;
+    pub async fn create() -> Result<Self> {
+        // This is technically a blocking call, but we're inside tests, so we don't care
+        // that much
+        let temp = TempDir::new("janet-").context("Couldn't create temporary directory")?;
 
-        fs::create_dir(TMP_DIR)
+        let gitlab = GitLabMockServer::start().await;
+
+        let (http_addr, http_addr_guard) = Self::reserve_socket().await?;
+
+        let database_path = Self::create_database(temp.path()).await?;
+
+        let config_path = Self::create_config(
+            temp.path(),
+            &database_path.display().to_string(),
+            gitlab.url().as_str(),
+            &http_addr,
+        )
+        .await?;
+
+        drop(http_addr_guard);
+
+        let janet = Janet::start(http_addr, config_path).await?;
+
+        Ok(Self {
+            temp,
+            gitlab,
+            janet,
+        })
+    }
+
+    async fn reserve_socket() -> Result<(String, TcpListener)> {
+        for port in 1025..65535 {
+            if let Ok(listener) = TcpListener::bind(("127.0.0.1", port)).await {
+                return Ok((listener.local_addr()?.to_string(), listener));
+            }
+        }
+
+        bail!("Couldn't find free TCP port")
+    }
+
+    async fn create_database(temp: &Path) -> Result<PathBuf> {
+        let path = temp.join("database.db");
+
+        fs::write(&path, "")
             .await
-            .with_context(|| format!("Couldn't create temporary directory: {}", TMP_DIR))
-            .unwrap();
+            .with_context(|| format!("Couldn't create database file: {}", path.display()))?;
 
-        let config_path = format!("{}/config.toml", TMP_DIR);
-        let database_path = format!("{}/database.db", TMP_DIR);
+        Ok(path)
+    }
 
-        let (gitlab, _) = GitLabClient::mock().await;
+    async fn create_config(
+        temp: &Path,
+        database_path: &str,
+        gitlab_url: &str,
+        http_addr: &str,
+    ) -> Result<PathBuf> {
+        let path = temp.join("config.toml");
 
-        let config = String::from(CONFIG)
-            .replace("{{ database_path }}", &database_path)
-            .replace("{{ gitlab_url }}", gitlab.url().as_str());
+        let content = String::from(CONFIG)
+            .replace("{{ database.path }}", database_path)
+            .replace("{{ gitlab.url }}", gitlab_url)
+            .replace("{{ http.addr }}", http_addr);
 
-        fs::write(&config_path, config)
+        fs::write(&path, content)
             .await
-            .with_context(|| format!("Couldn't create configuration file: {}", config_path))
-            .unwrap();
+            .with_context(|| format!("Couldn't create configuration file: {}", path.display()))?;
 
-        fs::write(&database_path, "")
-            .await
-            .with_context(|| format!("Couldn't create database file: {}", database_path))
-            .unwrap();
-
-        let janet = Janet::start(Path::new(&config_path)).await;
-
-        Self { gitlab, janet }
+        Ok(path)
     }
 }
 

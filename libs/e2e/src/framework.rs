@@ -6,21 +6,19 @@ pub const CONFIG: &str = indoc::indoc!(
     name = "janet"
 
     [database]
-    path = "{{ database_path }}"
-
-    [http]
-    addr = "127.0.0.1:10000"
-
-    [log]
+    path = "{{ database.path }}"
 
     [gitlab]
-    url = "{{ gitlab_url }}"
+    url = "{{ gitlab.url }}"
     personal_access_token = "token"
     webhook_secret = "secret"
+
+    [http]
+    addr = "{{ http.addr }}"
+
+    [log]
 "#
 );
-
-pub const TMP_DIR: &str = "/tmp/janet";
 
 mod janet;
 mod test_context;

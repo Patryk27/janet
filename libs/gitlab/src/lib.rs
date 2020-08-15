@@ -8,7 +8,7 @@ mod config;
 mod endpoints;
 mod models;
 
-#[cfg(feature = "mock")]
+#[cfg(any(test, feature = "mock"))]
 pub mod mock;
 
 use anyhow::Result;
@@ -39,7 +39,7 @@ impl GitLabClient {
         Ok(Self { url, client })
     }
 
-    #[cfg(feature = "mock")]
+    #[cfg(any(test, feature = "mock"))]
     pub async fn mock() -> (mock::GitLabMockServer, Self) {
         let server = mock::GitLabMockServer::start().await;
 

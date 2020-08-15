@@ -1,5 +1,3 @@
-#![feature(async_closure)]
-
 pub(self) use self::{deps::*, packets::*};
 
 use anyhow::*;

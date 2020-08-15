@@ -14,23 +14,20 @@ TODO
 
 ## Tests
 
-Janet uses two types of tests:
-
-- "fast but not necessarily determinate" ones (folks like to call them `unit tests`, although they aren't strictly
-  _unit_ in here)
-- "slow but thorough" ones (so like `end-to-end` tests).
-
-You can run `fast` tests using standard:
-
 ```shell
-$ cargo test --all
+$ cargo test --workspace
 ```
 
-... and, as for the `slow` ones (friendly warning: they are somewhat work-in-progress at the moment):
+This run both unit and integration tests; if some tests randomly fail, please ensure you have some free space left in
+`/tmp`.
+
+If you have Nix, you can use `nix-build .` as a shorthand to ensure everything's alright, as it's automatically running
+all the tests too.
+
+## Formatting
 
 ```shell
-$ cd libs/system
-$ cargo test --features e2e -- --test-threads=1
+$ cargo fmt
 ```
 
 # License
