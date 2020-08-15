@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-mod parse;
+mod atom;
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash, Serialize)]
 pub struct Name(String);

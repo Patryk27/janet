@@ -3,13 +3,13 @@ use lib_gitlab::MergeRequestIid;
 use serde::Serialize;
 use url::Url;
 
-mod parse;
+mod atom;
 mod resolve;
 
-/// A reference to a merge request - e.g.: `some-project!123`.
+/// A reference to a merge request, e.g. `some-project!123`.
 ///
-/// Exposes a `.resolve()` method allowing to translate reference into a
-/// specific id.
+/// This structure exposes a `.resolve()` function that allows to transform it
+/// into specific project & merge request ids.
 #[derive(Clone, Debug, Eq, PartialEq, Hash, Serialize)]
 #[serde(tag = "type", content = "payload")]
 pub enum MergeRequestPtr {

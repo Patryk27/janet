@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-mod parse;
+mod atom;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize)]
 pub struct Id(usize);
