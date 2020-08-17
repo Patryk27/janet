@@ -28,20 +28,12 @@ impl UsersRepository {
         let mut conn = self.db.conn.lock().await;
         let id = Id::new();
 
-        sqlx::query(
-            "
-            INSERT INTO users (
-                id,
-                ext_id
-            )
-            VALUES (?, ?)
-            ",
-        )
-        .bind(id)
-        .bind(user.ext_id)
-        .execute(conn.deref_mut())
-        .await
-        .with_context(|| format!("Couldn't create user: {:?}", user))?;
+        sqlx::query("INSERT INTO users (id, ext_id) VALUES (?, ?)")
+            .bind(id)
+            .bind(user.ext_id)
+            .execute(conn.deref_mut())
+            .await
+            .with_context(|| format!("Couldn't create user: {:?}", user))?;
 
         Ok(id)
     }
@@ -65,22 +57,11 @@ impl UsersRepository {
 
         let mut conn = self.db.conn.lock().await;
 
-        sqlx::query_as(
-            "
-            SELECT
-                id
-
-            FROM
-                users
-
-            WHERE
-                ext_id = ?
-            ",
-        )
-        .bind(user.ext_id)
-        .fetch_optional(conn.deref_mut())
-        .await
-        .with_context(|| format!("Couldn't find user: {:?}", user))
+        sqlx::query_as("SELECT id FROM users WHERE ext_id = ?")
+            .bind(user.ext_id)
+            .fetch_optional(conn.deref_mut())
+            .await
+            .with_context(|| format!("Couldn't find user: {:?}", user))
     }
 }
 
