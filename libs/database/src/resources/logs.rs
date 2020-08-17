@@ -37,8 +37,49 @@ impl LogsRepository {
     pub async fn find_all(&self) -> Result<Vec<Log>> {
         tracing::debug!("Accessing database");
 
-        todo!()
+        let mut conn = self.db.conn.lock().await;
+
+        sqlx::query_as("SELECT * FROM logs")
+            .fetch_all(conn.deref_mut())
+            .await
+            .context("Couldn't find logs")
     }
 }
 
-// TODO tests
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    mod add {
+        use super::*;
+
+        #[tokio::test(threaded_scheduler)]
+        async fn test() {
+            let db = Database::mock().await;
+
+            db.logs()
+                .add(NewLog {
+                    event: "some-event-1".to_string(),
+                    payload: "some-payload-1".to_string(),
+                })
+                .await
+                .unwrap();
+
+            db.logs()
+                .add(NewLog {
+                    event: "some-event-2".to_string(),
+                    payload: "some-payload-2".to_string(),
+                })
+                .await
+                .unwrap();
+
+            let logs = db.logs().find_all().await.unwrap();
+
+            assert_eq!(2, logs.len());
+            assert_eq!("some-event-1", logs[0].event);
+            assert_eq!("some-payload-1", logs[0].payload);
+            assert_eq!("some-event-2", logs[1].event);
+            assert_eq!("some-payload-2", logs[1].payload);
+        }
+    }
+}
