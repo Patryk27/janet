@@ -1,8 +1,8 @@
-pub use self::{config::*, tables::*};
+pub use self::{config::*, resources::*};
 
 mod config;
 mod migrations;
-mod tables;
+mod resources;
 
 use anyhow::{Context, Result};
 use sqlx::{Connection, SqliteConnection};

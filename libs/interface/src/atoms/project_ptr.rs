@@ -2,7 +2,7 @@ use crate::NamespacePtr;
 use lib_gitlab::{ProjectId, ProjectName};
 use serde::Serialize;
 
-mod parse;
+mod atom;
 mod resolve;
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash, Serialize)]
