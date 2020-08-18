@@ -14,15 +14,6 @@ pub struct Id<T> {
     _model: PhantomData<T>,
 }
 
-impl<T> Id<T> {
-    pub fn new() -> Self {
-        Self {
-            id: Uuid::new_v4(),
-            _model: Default::default(),
-        }
-    }
-}
-
 impl<T> Clone for Id<T> {
     fn clone(&self) -> Self {
         Self {
@@ -34,6 +25,15 @@ impl<T> Clone for Id<T> {
 
 impl<T> Copy for Id<T> {
     //
+}
+
+impl<T> Default for Id<T> {
+    fn default() -> Self {
+        Self {
+            id: Uuid::new_v4(),
+            _model: Default::default(),
+        }
+    }
 }
 
 impl<T> PartialEq<Id<T>> for Id<T> {

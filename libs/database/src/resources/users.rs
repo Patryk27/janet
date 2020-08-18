@@ -26,7 +26,7 @@ impl UsersRepository {
         tracing::debug!("Accessing database");
 
         let mut conn = self.db.conn.lock().await;
-        let id = Id::new();
+        let id = Id::default();
 
         sqlx::query("INSERT INTO users (id, ext_id) VALUES (?, ?)")
             .bind(id)
