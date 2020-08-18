@@ -5,7 +5,8 @@ mod migrations;
 mod resources;
 
 use anyhow::{Context, Result};
-use sqlx::{Connection, SqliteConnection};
+use sqlx::sqlite::SqliteConnectOptions;
+use sqlx::{ConnectOptions, SqliteConnection};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -27,7 +28,13 @@ impl Database {
             tracing::warn!("");
         }
 
-        let mut conn = SqliteConnection::connect(&config.path)
+        let options = SqliteConnectOptions::new()
+            .filename(&config.path)
+            .foreign_keys(true)
+            .statement_cache_capacity(0); // Statement cache is too overzealous and makes `DROP TABLE` statements fail
+
+        let mut conn = options
+            .connect()
             .await
             .context("Couldn't initialize SQLite")?;
 

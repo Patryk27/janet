@@ -1,6 +1,6 @@
 use super::handle_event;
 use crate::{EventRx, SystemDeps};
-use anyhow::{bail, Result};
+use anyhow::*;
 use std::sync::Arc;
 use tokio::stream::StreamExt;
 

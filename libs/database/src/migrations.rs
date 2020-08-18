@@ -4,7 +4,7 @@ use sqlx::SqliteConnection;
 const MIGRATIONS: &[&str] = &[include_str!("migrations/01.sql")];
 
 pub async fn run(conn: &mut SqliteConnection) -> Result<()> {
-    initialize(conn).await?;
+    boot(conn).await?;
 
     tracing::debug!("Checking database's version");
 
@@ -19,9 +19,9 @@ pub async fn run(conn: &mut SqliteConnection) -> Result<()> {
     Ok(())
 }
 
-async fn initialize(conn: &mut SqliteConnection) -> Result<()> {
-    sqlx::query(include_str!("migrations/init.sql"))
-        .execute(conn)
+async fn boot(conn: &mut SqliteConnection) -> Result<()> {
+    sqlx::query(include_str!("migrations/00-boot.sql"))
+        .execute(&mut *conn)
         .await?;
 
     Ok(())
