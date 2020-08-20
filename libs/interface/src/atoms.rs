@@ -1,6 +1,5 @@
 pub use self::{
     date_time::*,
-    id::*,
     merge_request_iid::*,
     merge_request_ptr::*,
     name::*,
@@ -14,7 +13,6 @@ pub use self::{
 };
 
 mod date_time;
-mod id;
 mod merge_request_iid;
 mod merge_request_ptr;
 mod name;
