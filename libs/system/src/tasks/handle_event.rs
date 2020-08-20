@@ -2,7 +2,7 @@ mod merge_request_state_changed;
 
 use crate::{EventPacket, SystemDeps};
 use anyhow::*;
-use lib_database::NewLog;
+use lib_database::CreateLogEntry;
 use lib_interface::Event;
 use std::sync::Arc;
 
@@ -28,8 +28,7 @@ async fn try_handle_event(deps: Arc<SystemDeps>, evt: Event) -> Result<()> {
     tracing::debug!("Handling event");
 
     deps.db
-        .logs()
-        .add(NewLog {
+        .execute(CreateLogEntry {
             event: "event".to_string(),
             payload: serde_json::to_string(&evt).unwrap(),
         })

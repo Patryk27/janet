@@ -97,12 +97,12 @@ impl<'a> Handler<'a> {
         let dependency = self
             .deps
             .db
-            .merge_request_dependencies()
-            .find_by_src(
-                self.user_id,
-                self.ctxt.discussion.as_ref(),
-                self.merge_request_id,
-            )
+            .maybe_find_one(db::GetMergeRequestDependencies {
+                user_id: Some(self.user_id),
+                ext_discussion_id: Some(&self.ctxt.discussion),
+                src_merge_request_id: Some(self.merge_request_id),
+                ..Default::default()
+            })
             .await?;
 
         let (_, _, dst_merge_request_id) = sync_merge_request(
@@ -134,10 +134,9 @@ impl<'a> Handler<'a> {
         if dependency.is_none() {
             self.deps
                 .db
-                .merge_request_dependencies()
-                .add(&db::NewMergeRequestDependency {
+                .execute(db::CreateMergeRequestDependency {
                     user_id: self.user_id,
-                    discussion_ext_id: self.ctxt.discussion.as_ref().into(),
+                    ext_discussion_id: self.ctxt.discussion.clone(),
                     src_merge_request_id: self.merge_request_id,
                     dst_merge_request_id,
                 })
@@ -160,8 +159,7 @@ impl<'a> Handler<'a> {
         if let Some(dependency) = dependency {
             self.deps
                 .db
-                .merge_request_dependencies()
-                .remove(dependency.id)
+                .execute(db::DeleteMergeRequestDependency { id: dependency.id })
                 .await?;
         }
 

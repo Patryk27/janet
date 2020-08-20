@@ -11,12 +11,7 @@ pub async fn sync_user(
 ) -> Result<(gl::User, db::Id<db::User>)> {
     let gl_user = gitlab.user(gl_user_id).await?;
 
-    let user_id = db
-        .users()
-        .add(&db::NewUser {
-            ext_id: gl_user.id.inner() as _,
-        })
-        .await?;
+    let user_id = db.execute(db::CreateUser { ext_id: gl_user.id }).await?;
 
     Ok((gl_user, user_id))
 }
@@ -30,9 +25,8 @@ pub async fn sync_project(
     let gl_project = gitlab.project(&gl_project_id.inner().to_string()).await?;
 
     let project_id = db
-        .projects()
-        .add(&db::NewProject {
-            ext_id: gl_project_id.inner() as _,
+        .execute(db::CreateProject {
+            ext_id: gl_project.id,
         })
         .await?;
 
@@ -54,12 +48,11 @@ pub async fn sync_merge_request(
         .await?;
 
     let merge_request_id = db
-        .merge_requests()
-        .add(&db::NewMergeRequest {
+        .execute(db::CreateMergeRequest {
             project_id,
-            ext_id: gl_merge_request.id.inner() as _,
-            iid: gl_merge_request.iid.inner() as _,
-            state: gl_merge_request.state.clone(),
+            ext_id: gl_merge_request.id,
+            ext_iid: gl_merge_request.iid,
+            ext_state: gl_merge_request.state.clone(),
         })
         .await?;
 
