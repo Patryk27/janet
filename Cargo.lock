@@ -1151,6 +1151,7 @@ dependencies = [
  "chrono",
  "lib_gitlab",
  "nom",
+ "pretty_assertions",
  "reqwest",
  "serde",
  "serde_json",
