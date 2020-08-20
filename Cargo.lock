@@ -1120,6 +1120,7 @@ dependencies = [
  "futures",
  "indoc",
  "lib_gitlab",
+ "rand 0.7.3",
  "reqwest",
  "serde",
  "serde_json",

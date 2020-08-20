@@ -1,11 +1,13 @@
 use crate::framework::{Janet, CONFIG};
 use anyhow::*;
 use lib_gitlab::mock::GitLabMockServer;
+use rand::Rng;
 use std::fmt;
 use std::path::{Path, PathBuf};
 use tempdir::TempDir;
 use tokio::fs;
 use tokio::net::TcpListener;
+use tokio::time::{delay_for, Duration};
 
 pub struct TestContext {
     pub temp: TempDir,
@@ -45,10 +47,14 @@ impl TestContext {
     }
 
     async fn reserve_socket() -> Result<(String, TcpListener)> {
-        for port in 1025..65535 {
+        for _ in 0..10000 {
+            let port: u16 = rand::thread_rng().gen_range(1025, 65535);
+
             if let Ok(listener) = TcpListener::bind(("127.0.0.1", port)).await {
                 return Ok((listener.local_addr()?.to_string(), listener));
             }
+
+            delay_for(Duration::from_millis(1)).await;
         }
 
         bail!("Couldn't find free TCP port")
