@@ -14,7 +14,7 @@ pub enum HandlerError {
     #[error("sorry, I couldn't find this merge request - could you please ensure it exists and re-create your comment?")]
     MergeRequestNotFound,
 
-    #[error("well, this is embarrassing - there was an issue processing your request: {0}; could you please contact the administrator?")]
+    #[error("well, this is embarrassing - there was an issue processing your request:\n```\n{0:?}\n```\nCould you please contact the administrator?")]
     Unhandled(#[from] Error),
 }
 

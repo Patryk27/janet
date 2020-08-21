@@ -2,7 +2,7 @@ mod merge_request;
 
 use crate::{CommandPacket, SystemDeps};
 use anyhow::*;
-use lib_database::NewLog;
+use lib_database::CreateLogEntry;
 use lib_interface::Command;
 use std::sync::Arc;
 
@@ -28,8 +28,7 @@ pub async fn try_handle_command(deps: Arc<SystemDeps>, cmd: Command) -> Result<(
     tracing::debug!("Handling command");
 
     deps.db
-        .logs()
-        .add(NewLog {
+        .execute(CreateLogEntry {
             event: "command".to_string(),
             payload: serde_json::to_string(&cmd).unwrap(),
         })

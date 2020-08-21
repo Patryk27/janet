@@ -1,7 +1,7 @@
 use crate::SystemDeps;
 use anyhow::*;
-use lib_database::{Id, MergeRequest, MergeRequestDependency};
-use lib_gitlab::{DiscussionId, MergeRequestIid, ProjectId, UserId};
+use lib_database as db;
+use lib_gitlab as gl;
 use std::sync::Arc;
 
 /// Handles a generic "state of merge request changed" event.
@@ -10,23 +10,27 @@ use std::sync::Arc;
 /// `closed`) and it's passed verbatim to the message sent to user.
 pub async fn handle(
     deps: Arc<SystemDeps>,
-    project: ProjectId,
-    merge_request: MergeRequestIid,
+    project: gl::ProjectId,
+    merge_request: gl::MergeRequestIid,
     verb: &'static str,
 ) -> Result<()> {
     // Since Janet listens for events from all merge requests, it might happen (and
     // will happen) that we'll receive an event about a merge request we don't care
-    // about (e.g. for a merge request no one has `depends on` yet).
+    // about (e.g. for a merge request no one had `depends on` yet).
     //
     // When that happens, we just want to silently ignore the event - and that's
     // what happens here: we load merge request from our database and when it's not
     // present, we ignore the event.
-    let merge_request = if let Some(merge_request) = deps
+    let merge_request = deps
         .db
-        .merge_requests()
-        .find_by_external_id(project.inner() as _, merge_request.inner() as _)
-        .await?
-    {
+        .maybe_find_one(db::GetMergeRequests {
+            ext_iid: Some(merge_request),
+            ext_project_id: Some(project),
+            ..Default::default()
+        })
+        .await?;
+
+    let merge_request = if let Some(merge_request) = merge_request {
         merge_request
     } else {
         return Ok(());
@@ -41,13 +45,15 @@ pub async fn handle(
 /// interested users.
 async fn notify_merge_request_dependencies(
     deps: &SystemDeps,
-    merge_request: Id<MergeRequest>,
+    merge_request: db::MergeRequest,
     verb: &'static str,
 ) -> Result<()> {
     let mr_deps = deps
         .db
-        .merge_request_dependencies()
-        .find_by_dep(merge_request)
+        .find_all(db::GetMergeRequestDependencies {
+            dst_merge_request_id: Some(merge_request.id),
+            ..Default::default()
+        })
         .await?;
 
     for mr_dep in mr_deps {
@@ -61,7 +67,7 @@ async fn notify_merge_request_dependencies(
 async fn notify_merge_request_dependency(
     deps: &SystemDeps,
     verb: &'static str,
-    mr_dep: MergeRequestDependency,
+    mr_dep: db::MergeRequestDependency,
 ) {
     tracing::trace!("Sending note for merge request dependency");
 
@@ -80,32 +86,61 @@ async fn notify_merge_request_dependency(
 async fn try_notify_merge_request_dependency(
     deps: &SystemDeps,
     verb: &'static str,
-    mr_dep: MergeRequestDependency,
+    mr_dep: db::MergeRequestDependency,
 ) -> Result<()> {
-    let src_merge_request = deps
+    let (src_merge_request, src_project) = {
+        let merge_request = deps
+            .db
+            .find_one(db::GetMergeRequests {
+                id: Some(mr_dep.src_merge_request_id),
+                ..Default::default()
+            })
+            .await?;
+
+        let project = deps
+            .db
+            .find_one(db::GetProjects {
+                id: Some(merge_request.project_id),
+                ..Default::default()
+            })
+            .await?;
+
+        (merge_request, project)
+    };
+
+    let (dst_merge_request, dst_project) = {
+        let merge_request = deps
+            .db
+            .find_one(db::GetMergeRequests {
+                id: Some(mr_dep.dst_merge_request_id),
+                ..Default::default()
+            })
+            .await?;
+
+        let project = deps
+            .db
+            .find_one(db::GetProjects {
+                id: Some(merge_request.project_id),
+                ..Default::default()
+            })
+            .await?;
+
+        (merge_request, project)
+    };
+
+    let user = deps
         .db
-        .merge_requests()
-        .get(mr_dep.src_merge_request_id)
+        .find_one(db::GetUsers {
+            id: Some(mr_dep.user_id),
+            ..Default::default()
+        })
         .await?;
 
-    let dst_merge_request = deps
-        .db
-        .merge_requests()
-        .get(mr_dep.dst_merge_request_id)
-        .await?;
-
-    let src_project = deps.db.projects().get(src_merge_request.project_id).await?;
-    let dst_project = deps.db.projects().get(dst_merge_request.project_id).await?;
-    let user = deps.db.users().get(mr_dep.user_id).await?;
-
-    let gl_user = deps.gitlab.user(UserId::new(user.ext_id as _)).await?;
+    let gl_user = deps.gitlab.user(user.ext_id()).await?;
 
     let gl_dst_merge_request = deps
         .gitlab
-        .merge_request(
-            ProjectId::new(dst_project.ext_id as _),
-            MergeRequestIid::new(dst_merge_request.iid as _),
-        )
+        .merge_request(dst_project.ext_id(), dst_merge_request.ext_iid())
         .await?;
 
     let note = format!(
@@ -115,9 +150,9 @@ async fn try_notify_merge_request_dependency(
 
     deps.gitlab
         .create_merge_request_note(
-            ProjectId::new(src_project.ext_id as _),
-            MergeRequestIid::new(src_merge_request.iid as _),
-            &DiscussionId::new(mr_dep.discussion_ext_id),
+            src_project.ext_id(),
+            src_merge_request.ext_iid(),
+            &mr_dep.ext_discussion_id(),
             note,
         )
         .await?;

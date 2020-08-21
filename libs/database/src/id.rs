@@ -3,6 +3,7 @@ use sqlx::encode::IsNull;
 use sqlx::error::BoxDynError;
 use sqlx::sqlite::{Sqlite, SqliteRow};
 use sqlx::{Database, Error, Row};
+use std::cmp::Ordering;
 use std::fmt;
 use std::marker::PhantomData;
 use std::str::FromStr;
@@ -44,6 +45,18 @@ impl<T> PartialEq<Id<T>> for Id<T> {
 
 impl<T> Eq for Id<T> {
     //
+}
+
+impl<T> PartialOrd<Id<T>> for Id<T> {
+    fn partial_cmp(&self, other: &Id<T>) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl<T> Ord for Id<T> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.id.cmp(&other.id)
+    }
 }
 
 impl<T> fmt::Display for Id<T> {

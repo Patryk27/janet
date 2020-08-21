@@ -1,14 +1,21 @@
-pub use self::{config::*, resources::*};
+#![feature(crate_visibility_modifier)]
+
+pub use self::{config::*, cqrs::*, features::*, id::*};
 
 mod config;
+mod cqrs;
+mod features;
+mod id;
 mod migrations;
-mod resources;
 
-use anyhow::{Context, Result};
+use anyhow::*;
 use sqlx::sqlite::SqliteConnectOptions;
 use sqlx::{ConnectOptions, SqliteConnection};
 use std::sync::Arc;
 use tokio::sync::Mutex;
+
+#[cfg(test)]
+mod test_utils;
 
 #[derive(Clone)]
 pub struct Database {
@@ -55,32 +62,28 @@ impl Database {
         .unwrap()
     }
 
-    #[cfg(test)]
-    pub async fn lock(&self) -> tokio::sync::MutexGuard<'_, SqliteConnection> {
+    pub async fn execute<C: Command>(&self, command: C) -> Result<C::Output> {
+        command.execute(self).await
+    }
+
+    pub async fn find_all<Q: Query>(&self, query: Q) -> Result<Vec<Q::Model>> {
+        query.execute(self).await
+    }
+
+    pub async fn find_one<Q: Query>(&self, query: Q) -> Result<Q::Model> {
+        match self.maybe_find_one(query).await? {
+            Some(model) => Ok(model),
+            None => bail!("No models match given query"),
+        }
+    }
+
+    pub async fn maybe_find_one<Q: Query>(&self, query: Q) -> Result<Option<Q::Model>> {
+        let model = self.find_all(query).await?.into_iter().next();
+
+        Ok(model)
+    }
+
+    crate async fn lock(&self) -> tokio::sync::MutexGuard<'_, SqliteConnection> {
         self.conn.lock().await
-    }
-
-    pub fn logs(&self) -> LogsRepository {
-        LogsRepository::new(self.clone())
-    }
-
-    pub fn merge_request_dependencies(&self) -> MergeRequestDependenciesRepository {
-        MergeRequestDependenciesRepository::new(self.clone())
-    }
-
-    pub fn merge_requests(&self) -> MergeRequestsRepository {
-        MergeRequestsRepository::new(self.clone())
-    }
-
-    pub fn projects(&self) -> ProjectsRepository {
-        ProjectsRepository::new(self.clone())
-    }
-
-    pub fn reminders(&self) -> RemindersRepository {
-        RemindersRepository::new(self.clone())
-    }
-
-    pub fn users(&self) -> UsersRepository {
-        UsersRepository::new(self.clone())
     }
 }
