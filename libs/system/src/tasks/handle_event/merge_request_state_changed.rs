@@ -23,7 +23,7 @@ pub async fn handle(
     // present, we ignore the event.
     let merge_request = deps
         .db
-        .maybe_find_one(db::GetMergeRequests {
+        .get_opt(db::FindMergeRequests {
             ext_iid: Some(merge_request),
             ext_project_id: Some(project),
             ..Default::default()
@@ -50,7 +50,7 @@ async fn notify_merge_request_dependencies(
 ) -> Result<()> {
     let mr_deps = deps
         .db
-        .find_all(db::GetMergeRequestDependencies {
+        .get_all(db::FindMergeRequestDependencies {
             dst_merge_request_id: Some(merge_request.id),
             ..Default::default()
         })
@@ -91,18 +91,12 @@ async fn try_notify_merge_request_dependency(
     let (src_merge_request, src_project) = {
         let merge_request = deps
             .db
-            .find_one(db::GetMergeRequests {
-                id: Some(mr_dep.src_merge_request_id),
-                ..Default::default()
-            })
+            .get_one(db::FindMergeRequests::id(mr_dep.src_merge_request_id))
             .await?;
 
         let project = deps
             .db
-            .find_one(db::GetProjects {
-                id: Some(merge_request.project_id),
-                ..Default::default()
-            })
+            .get_one(db::FindProjects::id(merge_request.project_id))
             .await?;
 
         (merge_request, project)
@@ -111,30 +105,18 @@ async fn try_notify_merge_request_dependency(
     let (dst_merge_request, dst_project) = {
         let merge_request = deps
             .db
-            .find_one(db::GetMergeRequests {
-                id: Some(mr_dep.dst_merge_request_id),
-                ..Default::default()
-            })
+            .get_one(db::FindMergeRequests::id(mr_dep.dst_merge_request_id))
             .await?;
 
         let project = deps
             .db
-            .find_one(db::GetProjects {
-                id: Some(merge_request.project_id),
-                ..Default::default()
-            })
+            .get_one(db::FindProjects::id(merge_request.project_id))
             .await?;
 
         (merge_request, project)
     };
 
-    let user = deps
-        .db
-        .find_one(db::GetUsers {
-            id: Some(mr_dep.user_id),
-            ..Default::default()
-        })
-        .await?;
+    let user = deps.db.get_one(db::FindUsers::id(mr_dep.user_id)).await?;
 
     let gl_user = deps.gitlab.user(user.ext_id()).await?;
 

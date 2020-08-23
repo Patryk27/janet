@@ -2,7 +2,7 @@ use crate::features::prelude::*;
 use crate::MergeRequest;
 
 #[derive(Clone, Debug, Default)]
-pub struct GetMergeRequests {
+pub struct FindMergeRequests {
     /// Internal merge request id
     pub id: Option<Id<MergeRequest>>,
 
@@ -16,13 +16,29 @@ pub struct GetMergeRequests {
     pub ext_project_id: Option<gl::ProjectId>,
 }
 
+impl FindMergeRequests {
+    pub fn id(id: Id<MergeRequest>) -> Self {
+        Self {
+            id: Some(id),
+            ..Default::default()
+        }
+    }
+
+    pub fn ext_id(ext_id: gl::MergeRequestId) -> Self {
+        Self {
+            ext_id: Some(ext_id),
+            ..Default::default()
+        }
+    }
+}
+
 #[async_trait]
-impl Query for GetMergeRequests {
+impl Query for FindMergeRequests {
     type Model = MergeRequest;
 
     #[tracing::instrument(skip(db))]
-    async fn execute(self, db: &Database) -> Result<Vec<Self::Model>, Error> {
-        tracing::debug!("Searching for merge requests");
+    async fn execute(self, db: &Database) -> Result<Vec<Self::Model>> {
+        tracing::debug!("Finding merge requests");
 
         let mut query = String::from(
             "
@@ -65,6 +81,6 @@ impl Query for GetMergeRequests {
         sqlx::query_as_with(&query, args)
             .fetch_all(db.lock().await.deref_mut())
             .await
-            .with_context(|| format!("Couldn't search for merge requests: {:?}", self))
+            .with_context(|| format!("Couldn't find merge requests for query: {:?}", self))
     }
 }

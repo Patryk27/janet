@@ -1,6 +1,6 @@
-pub use self::{create::*, delete::*, get::*, merge_request_dependency::*};
+pub use self::{create::*, delete::*, find::*, merge_request_dependency::*};
 
 mod create;
 mod delete;
-mod get;
+mod find;
 mod merge_request_dependency;

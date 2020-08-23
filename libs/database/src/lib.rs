@@ -66,19 +66,19 @@ impl Database {
         command.execute(self).await
     }
 
-    pub async fn find_all<Q: Query>(&self, query: Q) -> Result<Vec<Q::Model>> {
+    pub async fn get_all<Q: Query>(&self, query: Q) -> Result<Vec<Q::Model>> {
         query.execute(self).await
     }
 
-    pub async fn find_one<Q: Query>(&self, query: Q) -> Result<Q::Model> {
-        match self.maybe_find_one(query).await? {
+    pub async fn get_one<Q: Query>(&self, query: Q) -> Result<Q::Model> {
+        match self.get_opt(query).await? {
             Some(model) => Ok(model),
             None => bail!("No models match given query"),
         }
     }
 
-    pub async fn maybe_find_one<Q: Query>(&self, query: Q) -> Result<Option<Q::Model>> {
-        let model = self.find_all(query).await?.into_iter().next();
+    pub async fn get_opt<Q: Query>(&self, query: Q) -> Result<Option<Q::Model>> {
+        let model = self.get_all(query).await?.into_iter().next();
 
         Ok(model)
     }

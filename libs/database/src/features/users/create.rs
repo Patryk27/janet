@@ -1,5 +1,5 @@
 use crate::features::prelude::*;
-use crate::{GetUsers, User};
+use crate::{FindUsers, User};
 
 #[derive(Clone, Debug)]
 pub struct CreateUser {
@@ -15,13 +15,7 @@ impl Command for CreateUser {
     async fn execute(self, db: &Database) -> Result<Self::Output> {
         // Creating users is idempotent - i.e. creating the same user for the second
         // time is a no-op
-        if let Some(user) = db
-            .maybe_find_one(GetUsers {
-                ext_id: Some(self.ext_id),
-                ..Default::default()
-            })
-            .await?
-        {
+        if let Some(user) = db.get_opt(FindUsers::ext_id(self.ext_id)).await? {
             return Ok(user.id);
         }
 
@@ -55,13 +49,7 @@ mod tests {
             .await
             .unwrap();
 
-        let user = db
-            .find_one(GetUsers {
-                id: Some(id),
-                ..Default::default()
-            })
-            .await
-            .unwrap();
+        let user = db.get_one(FindUsers::id(id)).await.unwrap();
 
         assert_eq!(id, user.id);
         assert_eq!(123, user.ext_id as usize);

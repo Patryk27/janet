@@ -1,5 +1,5 @@
 use crate::features::prelude::*;
-use crate::{GetProjects, Project};
+use crate::{FindProjects, Project};
 
 #[derive(Clone, Debug)]
 pub struct CreateProject {
@@ -12,16 +12,10 @@ impl Command for CreateProject {
     type Output = Id<Project>;
 
     #[tracing::instrument(skip(db))]
-    async fn execute(self, db: &Database) -> Result<Self::Output, Error> {
+    async fn execute(self, db: &Database) -> Result<Self::Output> {
         // Creating projects is idempotent - i.e. creating the same project for the
         // second time is a no-op
-        if let Some(project) = db
-            .maybe_find_one(GetProjects {
-                ext_id: Some(self.ext_id),
-                ..Default::default()
-            })
-            .await?
-        {
+        if let Some(project) = db.get_opt(FindProjects::ext_id(self.ext_id)).await? {
             return Ok(project.id);
         }
 
@@ -55,13 +49,7 @@ mod tests {
             .await
             .unwrap();
 
-        let project = db
-            .find_one(GetProjects {
-                id: Some(id),
-                ..Default::default()
-            })
-            .await
-            .unwrap();
+        let project = db.get_one(FindProjects::id(id)).await.unwrap();
 
         assert_eq!(id, project.id);
         assert_eq!(123, project.ext_id as usize);
