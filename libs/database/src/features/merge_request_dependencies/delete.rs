@@ -30,15 +30,13 @@ mod tests {
     use crate::test_utils::{create_merge_request, create_project, create_user};
     use crate::{CreateMergeRequestDependency, GetMergeRequestDependencies};
 
-    pub async fn find(
-        db: &Database,
-        id: Id<MergeRequestDependency>,
-    ) -> Result<MergeRequestDependency> {
+    pub async fn exists(db: &Database, id: Id<MergeRequestDependency>) -> bool {
         db.find_one(GetMergeRequestDependencies {
             id: Some(id),
             ..Default::default()
         })
         .await
+        .is_ok()
     }
 
     #[tokio::test(threaded_scheduler)]
@@ -48,7 +46,7 @@ mod tests {
 
         let mut ids = Vec::new();
 
-        for i in 0..3 {
+        for i in 0..2 {
             let id = db
                 .execute(CreateMergeRequestDependency {
                     user_id: create_user(&db, 250 + i).await,
@@ -64,9 +62,8 @@ mod tests {
 
         // Initial state
         {
-            assert!(find(&db, ids[0]).await.is_ok());
-            assert!(find(&db, ids[1]).await.is_ok());
-            assert!(find(&db, ids[2]).await.is_ok());
+            assert!(exists(&db, ids[0]).await);
+            assert!(exists(&db, ids[1]).await);
         }
 
         // Remove first dependency
@@ -75,9 +72,8 @@ mod tests {
                 .await
                 .unwrap();
 
-            assert!(find(&db, ids[0]).await.is_err());
-            assert!(find(&db, ids[1]).await.is_ok());
-            assert!(find(&db, ids[2]).await.is_ok());
+            assert!(!exists(&db, ids[0]).await);
+            assert!(exists(&db, ids[1]).await);
         }
 
         // Remove second dependency
@@ -86,20 +82,8 @@ mod tests {
                 .await
                 .unwrap();
 
-            assert!(find(&db, ids[0]).await.is_err());
-            assert!(find(&db, ids[1]).await.is_err());
-            assert!(find(&db, ids[2]).await.is_ok());
-        }
-
-        // Remove third dependency
-        {
-            db.execute(DeleteMergeRequestDependency { id: ids[2] })
-                .await
-                .unwrap();
-
-            assert!(find(&db, ids[0]).await.is_err());
-            assert!(find(&db, ids[1]).await.is_err());
-            assert!(find(&db, ids[2]).await.is_err());
+            assert!(!exists(&db, ids[0]).await);
+            assert!(!exists(&db, ids[1]).await);
         }
     }
 }
