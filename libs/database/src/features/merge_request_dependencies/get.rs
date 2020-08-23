@@ -72,7 +72,7 @@ mod tests {
     use std::collections::BTreeSet;
 
     #[allow(dead_code)]
-    struct Context {
+    struct TestContext {
         db: Database,
         project_10: Id<Project>,
         project_11: Id<Project>,
@@ -85,8 +85,55 @@ mod tests {
         id_2: Id<MergeRequestDependency>,
     }
 
-    impl Context {
-        pub async fn assert_ids(
+    impl TestContext {
+        async fn new() -> Self {
+            let db = Database::mock().await;
+
+            let project_10 = create_project(&db, 10).await;
+            let project_11 = create_project(&db, 11).await;
+
+            let merge_request_100 = create_merge_request(&db, project_10, 100, 1).await;
+            let merge_request_101 = create_merge_request(&db, project_10, 101, 2).await;
+            let merge_request_102 = create_merge_request(&db, project_11, 102, 3).await;
+
+            let user_250 = create_user(&db, 250).await;
+            let user_251 = create_user(&db, 251).await;
+
+            let id_1 = db
+                .execute(CreateMergeRequestDependency {
+                    user_id: user_250,
+                    ext_discussion_id: gl::DiscussionId::new("cafebabe"),
+                    src_merge_request_id: merge_request_100,
+                    dst_merge_request_id: merge_request_101,
+                })
+                .await
+                .unwrap();
+
+            let id_2 = db
+                .execute(CreateMergeRequestDependency {
+                    user_id: user_251,
+                    ext_discussion_id: gl::DiscussionId::new("cafebabe"),
+                    src_merge_request_id: merge_request_101,
+                    dst_merge_request_id: merge_request_102,
+                })
+                .await
+                .unwrap();
+
+            Self {
+                db,
+                project_10,
+                project_11,
+                merge_request_100,
+                merge_request_101,
+                merge_request_102,
+                user_250,
+                user_251,
+                id_1,
+                id_2,
+            }
+        }
+
+        async fn assert_ids(
             &self,
             query: GetMergeRequestDependencies<'_>,
             expected_ids: &[Id<MergeRequestDependency>],
@@ -106,60 +153,12 @@ mod tests {
         }
     }
 
-    async fn context() -> Context {
-        let db = Database::mock().await;
-
-        let project_10 = create_project(&db, 10).await;
-        let project_11 = create_project(&db, 11).await;
-
-        let merge_request_100 = create_merge_request(&db, project_10, 100, 1).await;
-        let merge_request_101 = create_merge_request(&db, project_10, 101, 2).await;
-        let merge_request_102 = create_merge_request(&db, project_11, 102, 3).await;
-
-        let user_250 = create_user(&db, 250).await;
-        let user_251 = create_user(&db, 251).await;
-
-        let id_1 = db
-            .execute(CreateMergeRequestDependency {
-                user_id: user_250,
-                ext_discussion_id: gl::DiscussionId::new("cafebabe"),
-                src_merge_request_id: merge_request_100,
-                dst_merge_request_id: merge_request_101,
-            })
-            .await
-            .unwrap();
-
-        let id_2 = db
-            .execute(CreateMergeRequestDependency {
-                user_id: user_251,
-                ext_discussion_id: gl::DiscussionId::new("cafebabe"),
-                src_merge_request_id: merge_request_101,
-                dst_merge_request_id: merge_request_102,
-            })
-            .await
-            .unwrap();
-
-        Context {
-            db,
-            project_10,
-            project_11,
-            merge_request_100,
-            merge_request_101,
-            merge_request_102,
-            user_250,
-            user_251,
-            id_1,
-            id_2,
-        }
-    }
-
     mod given_empty_filter {
         use super::*;
 
         #[tokio::test(threaded_scheduler)]
         async fn returns_all_items() {
-            let ctxt = context().await;
-
+            let ctxt = TestContext::new().await;
             let query = GetMergeRequestDependencies::default();
 
             ctxt.assert_ids(query, &[ctxt.id_1, ctxt.id_2]).await;
@@ -171,7 +170,7 @@ mod tests {
 
         #[tokio::test(threaded_scheduler)]
         async fn returns_matching_items() {
-            let ctxt = context().await;
+            let ctxt = TestContext::new().await;
 
             {
                 let query = GetMergeRequestDependencies {
@@ -198,7 +197,7 @@ mod tests {
 
         #[tokio::test(threaded_scheduler)]
         async fn returns_matching_items() {
-            let ctxt = context().await;
+            let ctxt = TestContext::new().await;
 
             {
                 let query = GetMergeRequestDependencies {
@@ -225,7 +224,7 @@ mod tests {
 
         #[tokio::test(threaded_scheduler)]
         async fn returns_matching_items() {
-            let ctxt = context().await;
+            let ctxt = TestContext::new().await;
 
             {
                 let ext_discussion_id = gl::DiscussionId::new("cafebabe");
@@ -256,7 +255,7 @@ mod tests {
 
         #[tokio::test(threaded_scheduler)]
         async fn returns_matching_items() {
-            let ctxt = context().await;
+            let ctxt = TestContext::new().await;
 
             {
                 let query = GetMergeRequestDependencies {
@@ -283,7 +282,7 @@ mod tests {
 
         #[tokio::test(threaded_scheduler)]
         async fn returns_matching_items() {
-            let ctxt = context().await;
+            let ctxt = TestContext::new().await;
 
             {
                 let query = GetMergeRequestDependencies {
