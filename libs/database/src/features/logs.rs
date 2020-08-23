@@ -1,5 +1,5 @@
-pub use self::{create::*, get::*, log_entry::*};
+pub use self::{create::*, find::*, log_entry::*};
 
 mod create;
-mod get;
+mod find;
 mod log_entry;

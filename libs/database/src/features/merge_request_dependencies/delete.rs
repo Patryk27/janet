@@ -28,10 +28,10 @@ impl Command for DeleteMergeRequestDependency {
 mod tests {
     use super::*;
     use crate::test_utils::{create_merge_request, create_project, create_user};
-    use crate::{CreateMergeRequestDependency, GetMergeRequestDependencies};
+    use crate::{CreateMergeRequestDependency, FindMergeRequestDependencies};
 
     pub async fn exists(db: &Database, id: Id<MergeRequestDependency>) -> bool {
-        db.find_one(GetMergeRequestDependencies {
+        db.find_one(FindMergeRequestDependencies {
             id: Some(id),
             ..Default::default()
         })

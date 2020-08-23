@@ -97,7 +97,7 @@ impl<'a> Handler<'a> {
         let dependency = self
             .deps
             .db
-            .maybe_find_one(db::GetMergeRequestDependencies {
+            .maybe_find_one(db::FindMergeRequestDependencies {
                 user_id: Some(self.user_id),
                 ext_discussion_id: Some(&self.ctxt.discussion),
                 src_merge_request_id: Some(self.merge_request_id),

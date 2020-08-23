@@ -1,5 +1,5 @@
 use crate::features::prelude::*;
-use crate::{GetMergeRequests, MergeRequest, Project};
+use crate::{FindMergeRequests, MergeRequest, Project};
 
 #[derive(Clone, Debug)]
 pub struct CreateMergeRequest {
@@ -25,7 +25,7 @@ impl Command for CreateMergeRequest {
         // Creating merge request is idempotent - i.e. creating the same merge request
         // for the second time is a no-op
         if let Some(merge_request) = db
-            .maybe_find_one(GetMergeRequests {
+            .maybe_find_one(FindMergeRequests {
                 ext_id: Some(self.ext_id),
                 ..Default::default()
             })
@@ -83,13 +83,7 @@ mod tests {
             .await
             .unwrap();
 
-        let merge_request = db
-            .find_one(GetMergeRequests {
-                id: Some(id),
-                ..Default::default()
-            })
-            .await
-            .unwrap();
+        let merge_request = db.find_one(FindMergeRequests::id(id)).await.unwrap();
 
         assert_eq!(id, merge_request.id);
         assert_eq!(project_id, merge_request.project_id);

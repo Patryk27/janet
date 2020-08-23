@@ -57,7 +57,7 @@ impl Command for CreateMergeRequestDependency {
 mod tests {
     use super::*;
     use crate::test_utils::*;
-    use crate::GetMergeRequestDependencies;
+    use crate::FindMergeRequestDependencies;
 
     #[tokio::test(threaded_scheduler)]
     async fn test() {
@@ -78,7 +78,7 @@ mod tests {
             .unwrap();
 
         let dep = db
-            .find_one(GetMergeRequestDependencies {
+            .find_one(FindMergeRequestDependencies {
                 id: Some(id),
                 ..Default::default()
             })

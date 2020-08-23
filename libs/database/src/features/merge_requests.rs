@@ -1,5 +1,5 @@
-pub use self::{create::*, get::*, merge_request::*};
+pub use self::{create::*, find::*, merge_request::*};
 
 mod create;
-mod get;
+mod find;
 mod merge_request;
