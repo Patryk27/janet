@@ -15,7 +15,7 @@ impl Query for GetUsers {
     type Model = User;
 
     #[tracing::instrument(skip(db))]
-    async fn execute(self, db: &Database) -> Result<Vec<Self::Model>, Error> {
+    async fn execute(self, db: &Database) -> Result<Vec<Self::Model>> {
         tracing::debug!("Searching for users");
 
         let mut query = String::from("SELECT * FROM users WHERE 1 = 1");

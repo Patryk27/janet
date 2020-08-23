@@ -12,7 +12,7 @@ impl Command for CreateProject {
     type Output = Id<Project>;
 
     #[tracing::instrument(skip(db))]
-    async fn execute(self, db: &Database) -> Result<Self::Output, Error> {
+    async fn execute(self, db: &Database) -> Result<Self::Output> {
         // Creating projects is idempotent - i.e. creating the same project for the
         // second time is a no-op
         if let Some(project) = db

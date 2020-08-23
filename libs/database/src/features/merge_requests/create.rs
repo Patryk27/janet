@@ -21,7 +21,7 @@ impl Command for CreateMergeRequest {
     type Output = Id<MergeRequest>;
 
     #[tracing::instrument(skip(db))]
-    async fn execute(self, db: &Database) -> Result<Self::Output, Error> {
+    async fn execute(self, db: &Database) -> Result<Self::Output> {
         // Creating merge request is idempotent - i.e. creating the same merge request
         // for the second time is a no-op
         if let Some(merge_request) = db

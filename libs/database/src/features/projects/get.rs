@@ -15,7 +15,7 @@ impl Query for GetProjects {
     type Model = Project;
 
     #[tracing::instrument(skip(db))]
-    async fn execute(self, db: &Database) -> Result<Vec<Self::Model>, Error> {
+    async fn execute(self, db: &Database) -> Result<Vec<Self::Model>> {
         tracing::debug!("Searching for projects");
 
         let mut query = String::from("SELECT * FROM projects WHERE 1 = 1");

@@ -21,7 +21,7 @@ impl Query for GetMergeRequests {
     type Model = MergeRequest;
 
     #[tracing::instrument(skip(db))]
-    async fn execute(self, db: &Database) -> Result<Vec<Self::Model>, Error> {
+    async fn execute(self, db: &Database) -> Result<Vec<Self::Model>> {
         tracing::debug!("Searching for merge requests");
 
         let mut query = String::from(
