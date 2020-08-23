@@ -132,7 +132,7 @@ mod tests {
         ) -> Result<()> {
             let actual: BTreeSet<_> = self
                 .db
-                .find_all(query)
+                .get_all(query)
                 .await
                 .unwrap()
                 .into_iter()

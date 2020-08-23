@@ -78,7 +78,7 @@ mod tests {
             .unwrap();
 
         let dep = db
-            .find_one(FindMergeRequestDependencies {
+            .get_one(FindMergeRequestDependencies {
                 id: Some(id),
                 ..Default::default()
             })

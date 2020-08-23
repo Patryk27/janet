@@ -23,6 +23,13 @@ impl FindMergeRequests {
             ..Default::default()
         }
     }
+
+    pub fn ext_id(ext_id: gl::MergeRequestId) -> Self {
+        Self {
+            ext_id: Some(ext_id),
+            ..Default::default()
+        }
+    }
 }
 
 #[async_trait]

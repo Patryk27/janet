@@ -24,13 +24,7 @@ impl Command for CreateMergeRequest {
     async fn execute(self, db: &Database) -> Result<Self::Output> {
         // Creating merge request is idempotent - i.e. creating the same merge request
         // for the second time is a no-op
-        if let Some(merge_request) = db
-            .maybe_find_one(FindMergeRequests {
-                ext_id: Some(self.ext_id),
-                ..Default::default()
-            })
-            .await?
-        {
+        if let Some(merge_request) = db.get_opt(FindMergeRequests::ext_id(self.ext_id)).await? {
             return Ok(merge_request.id);
         }
 
@@ -83,7 +77,7 @@ mod tests {
             .await
             .unwrap();
 
-        let merge_request = db.find_one(FindMergeRequests::id(id)).await.unwrap();
+        let merge_request = db.get_one(FindMergeRequests::id(id)).await.unwrap();
 
         assert_eq!(id, merge_request.id);
         assert_eq!(project_id, merge_request.project_id);

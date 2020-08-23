@@ -31,7 +31,7 @@ mod tests {
     use crate::{CreateMergeRequestDependency, FindMergeRequestDependencies};
 
     pub async fn exists(db: &Database, id: Id<MergeRequestDependency>) -> bool {
-        db.find_one(FindMergeRequestDependencies {
+        db.get_one(FindMergeRequestDependencies {
             id: Some(id),
             ..Default::default()
         })

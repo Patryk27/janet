@@ -51,7 +51,7 @@ mod tests {
         .await
         .unwrap();
 
-        let logs = db.find_all(FindLogEntries).await.unwrap();
+        let logs = db.get_all(FindLogEntries).await.unwrap();
 
         assert_eq!(2, logs.len());
         assert_eq!("some-event-1", logs[0].event);
