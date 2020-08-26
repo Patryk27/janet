@@ -133,8 +133,7 @@ mod tests {
             let actual: BTreeSet<_> = self
                 .db
                 .get_all(query)
-                .await
-                .unwrap()
+                .await?
                 .into_iter()
                 .map(|dep| dep.id)
                 .collect();
@@ -145,7 +144,7 @@ mod tests {
                 Ok(())
             } else {
                 bail!(
-                    "Query returned different result set;\nactual={:?}\nexpected={:?}",
+                    "Query returned different result set:\n- actual={:?}\n- expected={:?}",
                     actual,
                     expected
                 )
@@ -157,7 +156,7 @@ mod tests {
         use super::*;
 
         #[tokio::test(threaded_scheduler)]
-        async fn returns_all_items() {
+        async fn returns_all_dependencies() {
             let ctxt = TestContext::new().await;
             let query = FindMergeRequestDependencies::default();
 

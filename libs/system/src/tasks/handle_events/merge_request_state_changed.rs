@@ -1,15 +1,11 @@
-use crate::SystemDeps;
-use anyhow::*;
-use lib_database as db;
-use lib_gitlab as gl;
-use std::sync::Arc;
+use crate::prelude::*;
 
 /// Handles a generic "state of merge request changed" event.
 ///
 /// `verb` specifies what happened to the merge request (e.g. <<it got>>
 /// `closed`) and it's passed verbatim to the message sent to user.
 pub async fn handle(
-    deps: Arc<SystemDeps>,
+    world: &World,
     project: gl::ProjectId,
     merge_request: gl::MergeRequestIid,
     verb: &'static str,
@@ -21,7 +17,7 @@ pub async fn handle(
     // When that happens, we just want to silently ignore the event - and that's
     // what happens here: we load merge request from our database and when it's not
     // present, we ignore the event.
-    let merge_request = deps
+    let merge_request = world
         .db
         .get_opt(db::FindMergeRequests {
             ext_iid: Some(merge_request),
@@ -36,19 +32,19 @@ pub async fn handle(
         return Ok(());
     };
 
-    notify_merge_request_dependencies(&deps, merge_request, verb).await?;
+    notify_about_merge_request_dependencies(&world, merge_request, verb).await?;
 
     Ok(())
 }
 
 /// Checks dependencies for given merge request and dispatches notes for
 /// interested users.
-async fn notify_merge_request_dependencies(
-    deps: &SystemDeps,
+async fn notify_about_merge_request_dependencies(
+    world: &World,
     merge_request: db::MergeRequest,
     verb: &'static str,
 ) -> Result<()> {
-    let mr_deps = deps
+    let deps = world
         .db
         .get_all(db::FindMergeRequestDependencies {
             dst_merge_request_id: Some(merge_request.id),
@@ -56,22 +52,22 @@ async fn notify_merge_request_dependencies(
         })
         .await?;
 
-    for mr_dep in mr_deps {
-        notify_merge_request_dependency(deps, verb, mr_dep).await;
+    for dep in deps {
+        notify_about_merge_request_dependency(world, verb, dep).await;
     }
 
     Ok(())
 }
 
-#[tracing::instrument(skip(deps))]
-async fn notify_merge_request_dependency(
-    deps: &SystemDeps,
+#[tracing::instrument(skip(world))]
+async fn notify_about_merge_request_dependency(
+    world: &World,
     verb: &'static str,
-    mr_dep: db::MergeRequestDependency,
+    dep: db::MergeRequestDependency,
 ) {
     tracing::trace!("Sending note for merge request dependency");
 
-    if let Err(err) = try_notify_merge_request_dependency(deps, verb, mr_dep).await {
+    if let Err(err) = try_notify_about_merge_request_dependency(world, verb, dep).await {
         // TODO when someone removes the discussion, this invocation will return 404 -
         //      we should detect it and remove merge request dependency from the
         //      database not to spam the API
@@ -83,18 +79,18 @@ async fn notify_merge_request_dependency(
     }
 }
 
-async fn try_notify_merge_request_dependency(
-    deps: &SystemDeps,
+async fn try_notify_about_merge_request_dependency(
+    world: &World,
     verb: &'static str,
-    mr_dep: db::MergeRequestDependency,
+    dep: db::MergeRequestDependency,
 ) -> Result<()> {
     let (src_merge_request, src_project) = {
-        let merge_request = deps
+        let merge_request = world
             .db
-            .get_one(db::FindMergeRequests::id(mr_dep.src_merge_request_id))
+            .get_one(db::FindMergeRequests::id(dep.src_merge_request_id))
             .await?;
 
-        let project = deps
+        let project = world
             .db
             .get_one(db::FindProjects::id(merge_request.project_id))
             .await?;
@@ -103,12 +99,12 @@ async fn try_notify_merge_request_dependency(
     };
 
     let (dst_merge_request, dst_project) = {
-        let merge_request = deps
+        let merge_request = world
             .db
-            .get_one(db::FindMergeRequests::id(mr_dep.dst_merge_request_id))
+            .get_one(db::FindMergeRequests::id(dep.dst_merge_request_id))
             .await?;
 
-        let project = deps
+        let project = world
             .db
             .get_one(db::FindProjects::id(merge_request.project_id))
             .await?;
@@ -116,11 +112,11 @@ async fn try_notify_merge_request_dependency(
         (merge_request, project)
     };
 
-    let user = deps.db.get_one(db::FindUsers::id(mr_dep.user_id)).await?;
+    let user = world.db.get_one(db::FindUsers::id(dep.user_id)).await?;
 
-    let gl_user = deps.gitlab.user(user.ext_id()).await?;
+    let gl_user = world.gitlab.user(user.ext_id()).await?;
 
-    let gl_dst_merge_request = deps
+    let gl_dst_merge_request = world
         .gitlab
         .merge_request(dst_project.ext_id(), dst_merge_request.ext_iid())
         .await?;
@@ -130,11 +126,12 @@ async fn try_notify_merge_request_dependency(
         gl_user.username, gl_dst_merge_request.web_url, verb,
     );
 
-    deps.gitlab
+    world
+        .gitlab
         .create_merge_request_note(
             src_project.ext_id(),
             src_merge_request.ext_iid(),
-            &mr_dep.ext_discussion_id(),
+            &dep.ext_discussion_id(),
             note,
         )
         .await?;

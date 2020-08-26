@@ -1,9 +1,17 @@
-pub use self::{logs::*, merge_request_dependencies::*, merge_requests::*, projects::*, users::*};
+pub use self::{
+    logs::*,
+    merge_request_dependencies::*,
+    merge_requests::*,
+    projects::*,
+    reminders::*,
+    users::*,
+};
 
 mod logs;
 mod merge_request_dependencies;
 mod merge_requests;
 mod projects;
+mod reminders;
 mod users;
 
 crate mod prelude {

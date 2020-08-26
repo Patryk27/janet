@@ -46,7 +46,7 @@ mod tests {
             let (server, client) = GitLabClient::mock().await;
             let expected = namespace_1();
 
-            server.expect_namespace(1, &expected).await;
+            server.expect_namespace(&expected).await;
 
             let actual = client.namespace("1").await.unwrap();
 

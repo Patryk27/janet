@@ -6,7 +6,7 @@ mod when_user_adds_comment {
     #[tokio::test(threaded_scheduler)]
     async fn responds_with_greeting() {
         test(async move |ctxt| {
-            ctxt.gitlab.expect_user(1, &gl_mock::user_250()).await;
+            ctxt.gitlab.expect_user(&gl_mock::user_250()).await;
 
             ctxt.gitlab
                 .expect_merge_request_note_created(

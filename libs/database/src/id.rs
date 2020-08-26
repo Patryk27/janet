@@ -9,7 +9,6 @@ use std::marker::PhantomData;
 use std::str::FromStr;
 use uuid::Uuid;
 
-#[derive(Debug)]
 pub struct Id<T> {
     id: Uuid,
     _model: PhantomData<T>,
@@ -26,6 +25,12 @@ impl<T> Clone for Id<T> {
 
 impl<T> Copy for Id<T> {
     //
+}
+
+impl<T> fmt::Debug for Id<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.id)
+    }
 }
 
 impl<T> Default for Id<T> {

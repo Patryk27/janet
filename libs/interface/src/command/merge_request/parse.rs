@@ -1,7 +1,7 @@
 use crate::{Atom, CommandAction, DateTime, MergeRequestCommand, MergeRequestPtr};
 use nom::branch::alt;
-use nom::bytes::complete::{tag_no_case, take_while};
-use nom::combinator::all_consuming;
+use nom::bytes::complete::{tag, tag_no_case, take_while};
+use nom::combinator::{all_consuming, opt, rest};
 use nom::{IResult, Parser};
 
 pub fn parse(cmd: &str) -> IResult<&str, MergeRequestCommand> {
@@ -29,17 +29,23 @@ fn manage_dependency(i: &str) -> IResult<&str, MergeRequestCommand> {
 }
 
 fn manage_reminder(i: &str) -> IResult<&str, MergeRequestCommand> {
-    let (i, action) = CommandAction::parse(i)?;
-    let (i, _) = tag_no_case("remind me ")(i)?;
-    let (i, remind_at) = DateTime::parse(i)?;
+    tag_no_case("remind ")
+        .and(opt(tag_no_case("me ")))
+        .and(DateTime::parse)
+        .and(opt(tag(":").and(rest)))
+        .map(|(((_, _), remind_at), message)| {
+            let message = message.map(|(_, message)| message.trim().to_string());
 
-    Ok((i, MergeRequestCommand::ManageReminder { action, remind_at }))
+            MergeRequestCommand::ManageReminder { remind_at, message }
+        })
+        .parse(i)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ProjectPtr;
+    use crate::{Date, ProjectPtr, RelativeDate, Time};
+    use chrono::NaiveTime;
     use lib_gitlab::{MergeRequestIid, ProjectName};
     use std::str::FromStr;
     use url::Url;
@@ -138,6 +144,41 @@ mod tests {
                     );
                 }
             }
+        }
+    }
+
+    mod manage_reminder {
+        use super::*;
+        use test_case::test_case;
+
+        #[test_case("remind tomorrow at 12: important important!" ; "without me")]
+        #[test_case("remind me tomorrow at 12: important important!" ; "with me")]
+        fn with_message(input: &str) {
+            assert(
+                MergeRequestCommand::ManageReminder {
+                    remind_at: DateTime {
+                        date: Some(Date::Relative(RelativeDate::Days(1))),
+                        time: Some(Time::Absolute(NaiveTime::from_hms(12, 00, 00))),
+                    },
+                    message: Some("important important!".to_string()),
+                },
+                input,
+            );
+        }
+
+        #[test_case("remind tomorrow at 12" ; "without me")]
+        #[test_case("remind me tomorrow at 12" ; "with me")]
+        fn without_message(input: &str) {
+            assert(
+                MergeRequestCommand::ManageReminder {
+                    remind_at: DateTime {
+                        date: Some(Date::Relative(RelativeDate::Days(1))),
+                        time: Some(Time::Absolute(NaiveTime::from_hms(12, 00, 00))),
+                    },
+                    message: None,
+                },
+                input,
+            );
         }
     }
 }

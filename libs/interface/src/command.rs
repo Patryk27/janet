@@ -5,7 +5,7 @@ mod merge_request;
 
 use serde::Serialize;
 
-/// A generic command accepted by Janet.
+/// A generic command accepted by Janet
 #[derive(Clone, Debug, Serialize)]
 #[serde(tag = "type", content = "payload")]
 pub enum Command {

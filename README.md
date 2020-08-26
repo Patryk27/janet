@@ -15,6 +15,11 @@ will let you know when that merge request gets merged, closed or re-opened.
 
 > Due diligence: **GitLab Premium** offers [a similar feature](https://docs.gitlab.com/ee/user/project/merge_requests/merge_request_dependencies.html) too.
 
+## Reminders
+
+While going through a merge request, you can drop a comment saying e.g. `@janet remind me tomorrow`,
+`@janet remind me in 3d 2h` and Janet will ping you after that time passes.
+
 # Installation
 
 TODO
@@ -40,7 +45,7 @@ the two most important types being `Command` and `Event` - if you want to implem
 place to start.
 
 Eventually all commands and events are handled inside the `libs/system` crate; if you want to get inspired, take a look
-at `libs/system/src/tasks/handle_command/merge_request/hi.rs`, which is the simplest command supported by Janet.
+at `libs/system/src/tasks/handle_commands/merge_request/hi.rs`, which is the simplest command supported by Janet.
 
 Finally, end-to-end tests are implemented inside the `tests` directory - don't forget to add a few :-)
 
@@ -64,6 +69,6 @@ $ cargo fmt
 
 # License
 
-Copyright (c) 2020, Patryk Wychowaniec <wychowaniec.patryk@gmail.com>.
+Copyright (c) 2020, Patryk Wychowaniec, <wychowaniec.patryk@gmail.com>
 
 Licensed under the MIT license.

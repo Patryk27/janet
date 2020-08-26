@@ -46,7 +46,7 @@ mod tests {
             let (server, client) = GitLabClient::mock().await;
             let expected = project_10();
 
-            server.expect_project(1, &expected).await;
+            server.expect_project(&expected).await;
 
             let actual = client.project("10").await.unwrap();
 
