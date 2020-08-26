@@ -44,7 +44,7 @@ mod tests {
             let (server, client) = GitLabClient::mock().await;
             let expected = user_250();
 
-            server.expect_user(1, &expected).await;
+            server.expect_user(&expected).await;
 
             let actual = client.user(UserId::new(250)).await.unwrap();
 

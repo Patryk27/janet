@@ -29,7 +29,7 @@ impl GitLabMockServer {
         self.inner.uri().parse().unwrap()
     }
 
-    pub async fn expect_merge_request(&self, hits: u64, merge_request: &MergeRequest) {
+    pub async fn expect_merge_request(&self, merge_request: &MergeRequest) {
         let url = format!(
             "/api/v4/projects/{}/merge_requests/{}",
             merge_request.project_id.inner(),
@@ -41,7 +41,6 @@ impl GitLabMockServer {
         Mock::given(method("GET"))
             .and(path(url))
             .respond_with(response)
-            .expect(hits)
             .mount(&self.inner)
             .await;
     }
@@ -73,38 +72,35 @@ impl GitLabMockServer {
             .await;
     }
 
-    pub async fn expect_namespace(&self, hits: u64, namespace: &Namespace) {
+    pub async fn expect_namespace(&self, namespace: &Namespace) {
         let url = format!("/api/v4/namespaces/{}", namespace.id.inner());
         let response = ResponseTemplate::new(200).set_body_json(namespace);
 
         Mock::given(method("GET"))
             .and(path(url))
             .respond_with(response)
-            .expect(hits)
             .mount(&self.inner)
             .await;
     }
 
-    pub async fn expect_project(&self, hits: u64, project: &Project) {
+    pub async fn expect_project(&self, project: &Project) {
         let url = format!("/api/v4/projects/{}", project.id.inner());
         let response = ResponseTemplate::new(200).set_body_json(project);
 
         Mock::given(method("GET"))
             .and(path(url))
             .respond_with(response)
-            .expect(hits)
             .mount(&self.inner)
             .await;
     }
 
-    pub async fn expect_user(&self, hits: u64, user: &User) {
+    pub async fn expect_user(&self, user: &User) {
         let url = format!("/api/v4/users/{}", user.id.inner());
         let response = ResponseTemplate::new(200).set_body_json(user);
 
         Mock::given(method("GET"))
             .and(path(url))
             .respond_with(response)
-            .expect(hits)
             .mount(&self.inner)
             .await;
     }

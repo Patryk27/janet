@@ -10,11 +10,11 @@ mod when_user_adds_new_reminder {
         #[tokio::test(threaded_scheduler)]
         async fn reminds() {
             test(async move |ctxt| {
-                ctxt.gitlab.expect_user(2, &gl_mock::user_250()).await;
-                ctxt.gitlab.expect_project(1, &gl_mock::project_10()).await;
+                ctxt.gitlab.expect_user(&gl_mock::user_250()).await;
+                ctxt.gitlab.expect_project(&gl_mock::project_10()).await;
 
                 ctxt.gitlab
-                    .expect_merge_request(1, &gl_mock::merge_request_100())
+                    .expect_merge_request(&gl_mock::merge_request_100())
                     .await;
 
                 ctxt.gitlab
