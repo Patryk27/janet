@@ -5,7 +5,8 @@ mod when_user_adds_new_reminder {
 
     mod and_that_time_passes {
         use super::*;
-        use tokio::time::{delay_for, Duration};
+        use lib_system::REMINDER_RESOLUTION;
+        use tokio::time::delay_for;
 
         #[tokio::test(threaded_scheduler)]
         async fn reminds() {
@@ -54,7 +55,7 @@ mod when_user_adds_new_reminder {
                     }))
                     .await;
 
-                delay_for(Duration::from_secs(5)).await;
+                delay_for(REMINDER_RESOLUTION).await;
             })
             .await;
         }

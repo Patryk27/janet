@@ -1,5 +1,6 @@
 #![feature(crate_visibility_modifier)]
 
+pub use self::config::*;
 pub(self) use self::{packet::*, world::*};
 
 use anyhow::*;
@@ -10,6 +11,7 @@ use std::future::Future;
 use std::sync::Arc;
 use tokio::sync::{mpsc, oneshot};
 
+mod config;
 mod packet;
 mod prelude;
 mod tasks;

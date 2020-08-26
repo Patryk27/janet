@@ -1,3 +1,4 @@
+crate use crate::config::*;
 crate use crate::utils::{sync_merge_request, sync_merge_request_ptr, sync_user};
 crate use crate::{CommandRx, EventRx, Packet, World};
 crate use anyhow::*;

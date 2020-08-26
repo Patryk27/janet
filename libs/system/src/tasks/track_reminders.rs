@@ -3,7 +3,7 @@ mod close_reminder;
 use self::close_reminder::close_reminder;
 use crate::prelude::*;
 use chrono::Utc;
-use tokio::time::{delay_for, Duration};
+use tokio::time::delay_for;
 
 /// Starts an eternal loop  that watches for overdue reminders and notifies
 /// related users
@@ -25,6 +25,6 @@ pub async fn start(world: Arc<World>) -> Result<()> {
 
         // We could piggy-back on Tokio's `DelayQueue`, but polling is good enough in
         // practice (and way simpler to implement!)
-        delay_for(Duration::from_secs(5)).await;
+        delay_for(REMINDER_RESOLUTION).await;
     }
 }
