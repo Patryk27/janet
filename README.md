@@ -57,7 +57,7 @@ To launch all (unit & integration) tests, use good-old:
 $ cargo test --workspace
 ```
 
-_(integration tests require around a megabyte of free space inside the `/tmp/` directory.)_
+_(integration tests require around a megabyte of free space inside the `/tmp` directory.)_
 
 If you have Nix, you can use `nix-build .` as a shorthand, because it automatically launches all the tests too.
 
