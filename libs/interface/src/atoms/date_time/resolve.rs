@@ -1,6 +1,6 @@
 use crate::DateTime;
 use anyhow::*;
-use chrono::{Datelike, NaiveDateTime, Timelike, Utc};
+use chrono::{Datelike, Local, NaiveDateTime, Timelike, Utc};
 
 impl DateTime {
     pub fn resolve(&self, mut now: NaiveDateTime) -> NaiveDateTime {
@@ -15,7 +15,7 @@ impl DateTime {
         now
     }
 
-    pub fn resolve_utc(&self, now: chrono::DateTime<Utc>) -> Result<chrono::DateTime<Utc>> {
+    pub fn resolve_utc(&self, now: chrono::DateTime<Local>) -> Result<chrono::DateTime<Utc>> {
         let resolved = self.resolve(now.naive_local());
 
         let now: Option<_> = try {
@@ -25,6 +25,7 @@ impl DateTime {
                 .with_hour(resolved.hour())?
                 .with_minute(resolved.minute())?
                 .with_second(resolved.second())?
+                .with_timezone(&Utc)
         };
 
         now.ok_or_else(|| anyhow!("Given datetime resolved to an unrepresentable value"))
@@ -136,7 +137,7 @@ mod tests {
 
             #[test]
             fn resolves_it() {
-                let now = Utc::now();
+                let now = Local::now();
 
                 let actual = DateTime {
                     date: None,
@@ -160,7 +161,7 @@ mod tests {
 
             #[test]
             fn resolves_it() {
-                let now = Utc::now();
+                let now = Local::now();
 
                 let actual = DateTime {
                     date: None,

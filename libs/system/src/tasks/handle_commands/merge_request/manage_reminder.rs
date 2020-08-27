@@ -1,6 +1,6 @@
 use super::HandlerResult;
 use crate::prelude::*;
-use chrono::Utc;
+use chrono::Local;
 
 /// Handles the `remind me` command
 pub async fn handle(
@@ -9,7 +9,7 @@ pub async fn handle(
     remind_at: int::DateTime,
     message: Option<String>,
 ) -> HandlerResult<()> {
-    let remind_at = remind_at.resolve_utc(Utc::now())?;
+    let remind_at = remind_at.resolve_utc(Local::now())?;
 
     let (gl_user, user_id) = sync_user(world, ctxt.user).await?;
 
