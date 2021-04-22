@@ -13,8 +13,12 @@ let
     sqlite
   ];
 
+  openssl = pkgs.openssl.override {
+    static = true;
+  };
+
 in
-  pkgs.mkShell {
-    buildInputs = app-deps ++ dev-deps;
-    LD_LIBRARY_PATH="${pkgs.openssl.out}/lib";
-  }
+pkgs.mkShell {
+  propagatedNativeBuildInputs = app-deps ++ dev-deps;
+  LD_LIBRARY_PATH = "${openssl}/lib";
+}
